@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="vi" x-data="ui()" x-init="boot()" :class="{ 'dark': state.dark }" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Đồ Thờ Đại Lộc — Bảng điều khiển</title>
+  <meta name="description" content="Bảng điều khiển bán hàng cho cửa hàng đồ thờ, tượng Phật" />
+
+  <!-- Google Font: Be Vietnam Pro -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script>
+  try {
+    const darkOn = localStorage.getItem('themeDark') === '1'
+      // nếu chưa lưu, có thể fallback theo OS:
+      || (localStorage.getItem('themeDark') === null && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    if (darkOn) document.documentElement.classList.add('dark');
+  } catch (e) {}
+</script>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Be Vietnam Pro', 'system-ui', 'Segoe UI', 'Roboto', 'Arial', 'sans-serif'] },
+          colors: {
+            brand: { 50:'#fff9e6',100:'#fdecc3',200:'#fad98a',300:'#f0c254',400:'#d4a737',500:'#b48922',600:'#8b5e34',700:'#6a4729',800:'#4a3420',900:'#2e2216' }
+          },
+          boxShadow: {
+            subtle: '0 10px 40px -10px rgba(0,0,0,.35)',
+            innerglass: 'inset 0 1px 0 rgba(255,255,255,.08), inset 0 -1px 0 rgba(0,0,0,.25)'
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Alpine -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <!-- Lucide -->
+  <script defer src="https://unpkg.com/lucide@latest"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <style>
+    html, body { font-family: 'Be Vietnam Pro', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+
+    .glass { background: rgba(255,255,255,.06); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,.12);box-shadow: 0 10px 40px -10px rgba(0,0,0,.35); }
+    .glass-strong { background: linear-gradient(135deg, rgba(212,167,55,.18), rgba(136,98,45,.1)); backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,.14); }
+    [x-cloak]{display:none!important;}
+
+    /* ===== Mobile Dock (clean pill + FAB giữa) ===== */
+    .dock-wrap{ position:fixed; left:0; right:0; bottom:0; z-index:50; pointer-events:none; }
+    .dock{
+      pointer-events:auto;
+      width:min(740px,94vw);
+      margin:0 auto max(.9rem, env(safe-area-inset-bottom));
+      position:relative;
+      border-radius:20px;
+      padding:.65rem 1rem;
+      backdrop-filter:blur(12px);
+      background:rgba(16,16,20,.55);
+      border:1px solid rgba(255,255,255,.10);
+      box-shadow:0 18px 60px -24px rgba(0,0,0,.65), inset 0 1px 0 rgba(255,255,255,.08);
+    }
+
+    /* 5 cột: chừa 72px ở giữa cho FAB */
+    .dock-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr 72px 1fr 1fr;
+      align-items:center;
+      justify-items:center;
+      gap:.25rem;
+      min-height:56px;
+    }
+
+    .dock-item{
+      position:relative; display:flex; flex-direction:column; align-items:center;
+      gap:6px; font-size:.72rem; color:rgba(255,255,255,.74);
+      padding:.25rem .35rem;
+    }
+    .dock-item i{ width:1.3rem; height:1.3rem }
+    .dock-item.active{ color:#fff }
+    .dock-item.active { transform: translateY(-1px); transition: transform .18s ease; }
+
+    /* gạch phát sáng dưới tab */
+    .indicator{
+      position:absolute; left:50%; transform:translateX(-50%);
+      bottom:-6px; width:36px; height:8px; border-radius:999px;
+      background:#39ff6f; filter:blur(2px);
+    }
+
+    /* Nút nổi giữa */
+    .fab{
+      position:absolute; left:50%; top:0; transform:translate(-50%,-35%);
+      width:72px; height:72px; border-radius:9999px; display:grid; place-items:center;
+      background:linear-gradient(135deg, #2563eb, #3b82f6);
+      color:#fff; border:8px solid rgba(16,16,20,.55);
+      box-shadow:0 20px 40px rgba(37,99,235,.55), inset 0 1px 0 rgba(255,255,255,.28);
+      pointer-events:auto;
+    }
+    .fab i{ width:1.25rem; height:1.25rem }
+
+    /* tránh dock đè nội dung */
+    .has-dock{ padding-bottom:6.2rem; }
+
+    /* Light theme */
+    html:not(.dark) .dock{ background:rgba(255,255,255,.75); border-color:rgba(0,0,0,.08); }
+    html:not(.dark) .dock-item{ color:rgba(0,0,0,.70); }
+    html:not(.dark) .dock-item.active{ color:#0f172a; }
+    html:not(.dark) .fab{ border-color:rgba(25, 1, 1, 0.423); }
+
+
+    /* ===== Tables -> Mobile cards ===== */
+    .table-wrap{ border-radius:16px; overflow:hidden; }
+    table.responsive { width:100%; }
+
+    /* Desktop keeps normal tables */
+    @media (max-width: 640px){
+      .table-wrap { padding: .5rem; border-radius: 16px; }
+      table.responsive { display:block; border-collapse:separate; border-spacing:0 10px; }
+      table.responsive thead { display:none; }
+      table.responsive tbody { display:block; }
+      table.responsive tr {
+        display:block;
+        background: rgba(255,255,255,.06);
+        border:1px solid rgba(255,255,255,.10);
+        border-radius:16px;
+        padding:10px 12px;
+        margin:10px 0;
+      }
+      html:not(.dark) table.responsive tr{
+        background: rgba(0,0,0,.03);
+        border-color: rgba(0,0,0,.06);
+      }
+      table.responsive td{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        padding:8px 4px;
+        border-bottom:1px dashed rgba(255,255,255,.08);
+        font-size:.95rem;
+      }
+      html:not(.dark) table.responsive td{ border-bottom-color: rgba(0,0,0,.06); }
+      table.responsive td:last-child{ border-bottom:0; padding-bottom:2px; }
+
+      /* label bên trái mỗi ô */
+      table.responsive td::before{
+        content: attr(data-label);
+        font-weight:600;
+        margin-right:10px;
+        opacity:.8;
+      }
+
+      /* ô actions: các nút to hơn, căn phải */
+      .mobile-actions{
+        display:flex; gap:.5rem; justify-content:flex-end; width:100%;
+      }
+      .mobile-actions > button{
+        padding:.5rem .6rem; border-radius:12px;
+      }
+      
+    }
+  </style>
+</head>
+<body class="min-h-screen text-slate-800 dark:text-slate-100">
+
+  <!-- Wave Background -->
+  <svg class="fixed inset-0 -z-10 w-full h-full" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
+    <defs>
+      <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#5ff1e5"/><stop offset="100%" stop-color="#1aa6b3"/></linearGradient>
+      <linearGradient id="g2" x1="0" y1="1" x2="1" y2="0"><stop offset="0%" stop-color="#2cc5d3"/><stop offset="100%" stop-color="#2c67f2"/></linearGradient>
+      <linearGradient id="gd1" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#39e7db"/><stop offset="100%" stop-color="#0ea5b2"/></linearGradient>
+      <linearGradient id="gd2" x1="0" y1="1" x2="1" y2="0"><stop offset="0%" stop-color="#1992b3"/><stop offset="100%" stop-color="#365df7"/></linearGradient>
+    </defs>
+    <g id="waves-dark"  class="fixed inset-0 pointer-events-none hidden dark:block" opacity="0.95">
+      <rect width="100%" height="100%" fill="#05070d"/>
+      <path d="M0,690 C220,600 420,740 640,660 C860,580 1000,650 1220,610 C1440,570 1600,620 1920,560 L1920,1080 L0,1080 Z" fill="url(#gd1)" opacity=".85"/>
+      <path d="M0,760 C260,700 500,840 760,760 C1020,680 1180,760 1420,720 C1660,680 1770,740 1920,700 L1920,1080 L0,1080 Z" fill="url(#gd2)" opacity=".9"/>
+    </g>
+    <g id="waves-light" class="fixed inset-0 pointer-events-none block dark:hidden" opacity="0.9">
+      <rect width="100%" height="100%" fill="#f8fafc"/>
+      <path d="M0,690 C220,600 420,740 640,660 C860,580 1000,650 1220,610 C1440,570 1600,620 1920,560 L1920,1080 L0,1080 Z" fill="url(#g1)" opacity=".75"/>
+      <path d="M0,760 C260,700 500,840 760,760 C1020,680 1180,760 1420,720 C1660,680 1770,740 1920,700 L1920,1080 L0,1080 Z" fill="url(#g2)" opacity=".8"/>
+    </g>
+  </svg>
+
+  <!-- App layout -->
+  <div class="min-h-screen flex flex-col lg:grid lg:grid-cols-[240px_1fr]">
+    <!-- Sidebar desktop -->
+    <aside class="hidden lg:block border-r border-white/10 bg-white/60 dark:bg-slate-900/40 backdrop-blur">
+      <div class="p-4 flex items-center gap-2">
+        <div class="w-9 h-9 rounded-xl grid place-items-center glass font-semibold">Đ</div>
+        <div class="font-semibold">Đồ Thờ Đại Lộc</div>
+      </div>
+      <nav class="px-2 space-y-1">
+        <a @click.prevent="setTab('home')" :class="navClass('home')" class="flex items-center gap-2 px-3 py-2 rounded-xl"><i data-lucide="layout-dashboard" class="w-4 h-4"></i>Tổng quan</a>
+        <a @click.prevent="setTab('products')" :class="navClass('products')" class="flex items-center gap-2 px-3 py-2 rounded-xl"><i data-lucide="package" class="w-4 h-4"></i>Sản phẩm</a>
+        <a @click.prevent="setTab('orders')" :class="navClass('orders')" class="flex items-center gap-2 px-3 py-2 rounded-xl"><i data-lucide="receipt-text" class="w-4 h-4"></i>Đơn hàng</a>
+        <a @click.prevent="setTab('customers')" :class="navClass('customers')" class="flex items-center gap-2 px-3 py-2 rounded-xl"><i data-lucide="users" class="w-4 h-4"></i>Khách hàng</a>
+      </nav>
+      <div class="px-4 mt-6">
+        <button class="w-full px-3 py-2 rounded-xl glass flex items-center gap-2 justify-center" @click="openCreateOrder()"><i data-lucide="plus" class="w-4 h-4"></i> Tạo đơn hàng</button>
+      </div>
+    </aside>
+
+    <!-- Content -->
+    <div class="flex flex-col has-dock lg:pb-0">
+      <!-- Topbar -->
+      <header class="sticky top-0 z-40 border-b border-white/10 bg-white/70 dark:bg-slate-900/40 backdrop-blur">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
+            <button class="px-3 py-1.5 rounded-xl glass flex items-center" @click="toggleTheme()"><i :data-lucide="state.dark ? 'sun' : 'moon'" class="w-4 h-4"></i></button>
+          <div class="relative flex-1 max-w-xl">
+            <input type="text" :placeholder="'Tìm trong '+tabLabel(state.activeTab)+'...'" class="w-full pl-10 pr-3 py-2 rounded-xl glass focus:outline-none" x-model="state.search">
+            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
+          </div>
+          <div x-data="{open:false}" class="relative">
+        <!-- Nút avatar -->
+        <button
+            @click="open=!open"
+            @keydown.escape.window="open=false"
+            @click.outside="open=false"
+            class="flex items-center gap-2 rounded-xl glass px-2 py-1.5 focus:outline-none"
+            aria-haspopup="menu"
+            :aria-expanded="open"
+        >
+            <span class="relative inline-block">
+            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRaUqSojztqZnRXSFvvlm_sX78WOWk7w4ZNxQ&s" alt="Avatar"
+                class="h-8 w-8 rounded-full object-cover ring-1 ring-black/5 dark:ring-white/10">
+            <!-- chấm online -->
+            <span class="absolute -right-0.5 -bottom-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900"></span>
+            </span>
+            <span class="hidden sm:block text-sm font-medium text-slate-700 dark:text-slate-200">Tony</span>
+            <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400"></i>
+        </button>
+
+        <!-- Panel dropdown -->
+        <div
+            x-show="open"
+            x-transition.opacity.scale.origin.top.right
+            class="absolute right-0 mt-2 w-64 rounded-2xl border border-white/10 bg-white/80 dark:bg-slate-900/70 backdrop-blur shadow-xl p-2"
+            style="display:none"
+            role="menu"
+        >
+            <!-- Header nhỏ -->
+            <div class="flex items-center gap-3 p-2 rounded-xl bg-white/50 dark:bg-white/5">
+            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRaUqSojztqZnRXSFvvlm_sX78WOWk7w4ZNxQ&s" alt="Avatar" class="h-9 w-9 rounded-full object-cover">
+            <div class="min-w-0">
+                <div class="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">Tony Nguyễn</div>
+                <div class="text-xs text-slate-500 dark:text-slate-400 truncate">tony@example.com</div>
+            </div>
+            </div>
+
+            <div class="my-2 h-px bg-slate-200/60 dark:bg-white/10"></div>
+
+            <!-- Mục menu -->
+            <a href="/profile" role="menuitem"
+            class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100/70 dark:hover:bg-white/10">
+            <i data-lucide="user" class="w-4 h-4"></i>
+            <span class="text-sm">Hồ sơ</span>
+            </a>
+
+            <a href="/settings" role="menuitem"
+            class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100/70 dark:hover:bg-white/10">
+            <i data-lucide="settings" class="w-4 h-4"></i>
+            <span class="text-sm">Cài đặt</span>
+            </a>
+
+            <button type="button" role="menuitem"
+            @click="toggleTheme(); open=false"
+            class="w-full text-left flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100/70 dark:hover:bg-white/10">
+            <i :data-lucide="state.dark ? 'sun' : 'moon'" class="w-4 h-4"></i>
+            <span class="text-sm">Chuyển giao diện</span>
+            </button>
+
+            <div class="my-2 h-px bg-slate-200/60 dark:bg-white/10"></div>
+
+            <a href="/logout" role="menuitem"
+            class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100/70 dark:hover:bg-white/10 text-rose-600 dark:text-rose-400">
+            <i data-lucide="log-out" class="w-4 h-4"></i>
+            <span class="text-sm">Đăng xuất</span>
+            </a>
+        </div>
+        </div>
+        </div>
+      </header>
+
+      <!-- MAIN TABS -->
+      <main class="max-w-7xl mx-auto px-4 py-6 w-full">
+        <!-- HOME -->
+        <section x-show="state.activeTab==='home'" x-cloak>
+          <h1 class="text-2xl md:text-3xl font-bold">Bảng điều khiển</h1>
+
+          <!-- Quick actions -->
+          <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+            <button class="rounded-2xl p-3 glass hover:bg-white/10 flex items-center gap-2" @click="openCreateOrder()">
+              <i data-lucide="file-plus" class="w-4 h-4"></i> Tạo đơn
+            </button>
+            <button class="rounded-2xl p-3 glass flex items-center gap-2">
+              <i data-lucide="truck" class="w-4 h-4"></i> Nhập hàng
+            </button>
+            <button class="rounded-2xl p-3 glass flex items-center gap-2" @click="setTab('orders')">
+              <i data-lucide="bar-chart-3" class="w-4 h-4"></i> Báo cáo
+            </button>
+            <button class="rounded-2xl p-3 glass flex items-center gap-2">
+              <i data-lucide="credit-card" class="w-4 h-4"></i> Đối soát
+            </button>
+          </div>
+
+          <!-- KPIs -->
+          <div class="mt-6 grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="relative overflow-hidden rounded-2xl p-5 glass-strong">
+              <i data-lucide="trending-up" class="absolute right-4 top-4 w-5 h-5 opacity-40"></i>
+              <p class="text-sm opacity-80">Doanh thu hôm nay</p>
+              <div class="mt-2 text-3xl font-semibold" x-text="vnd(8650000)"></div>
+              <p class="text-xs text-emerald-300 mt-1">↑ 8.2% so với hôm qua</p>
+            </div>
+            <div class="relative overflow-hidden rounded-2xl p-5 glass">
+              <i data-lucide="check-circle-2" class="absolute right-4 top-4 w-5 h-5 opacity-40"></i>
+              <p class="text-sm opacity-80">Đơn hoàn tất</p><div class="mt-2 text-3xl font-semibold">42</div><p class="text-xs opacity-80">Tỉ lệ 92%</p>
+            </div>
+            <div class="relative overflow-hidden rounded-2xl p-5 glass">
+              <i data-lucide="user-plus" class="absolute right-4 top-4 w-5 h-5 opacity-40"></i>
+              <p class="text-sm opacity-80">Khách mới</p><div class="mt-2 text-3xl font-semibold">17</div><p class="text-xs opacity-80">Trong 24h qua</p>
+            </div>
+            <div class="relative overflow-hidden rounded-2xl p-5 glass">
+              <i data-lucide="alert-triangle" class="absolute right-4 top-4 w-5 h-5 opacity-40"></i>
+              <p class="text-sm opacity-80">Tồn kho thấp</p><div class="mt-2 text-3xl font-semibold">9</div><p class="text-xs text-rose-300">Cần nhập thêm</p>
+            </div>
+          </div>
+
+          <!-- Charts -->
+          <div class="mt-6 grid lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 rounded-2xl p-5 glass">
+              <div class="flex items-center justify-between gap-3 flex-wrap">
+                <p class="font-medium">Doanh thu 30 ngày</p>
+                <select class="px-2 py-1 rounded-lg glass text-sm" x-model="state.range" @change="renderCharts()">
+                  <option value="7">7 ngày</option><option value="14">14 ngày</option><option value="30">30 ngày</option>
+                </select>
+              </div>
+              <div class="mt-4 h-60"><canvas id="lineRevenue"></canvas></div>
+            </div>
+
+            <div class="rounded-2xl p-5 glass">
+              <div class="flex items-center justify-between">
+                <p class="font-medium">Cơ cấu doanh thu</p>
+                <span class="text-xs opacity-80">Theo nhóm</span>
+              </div>
+              <div class="mt-4 h-60"><canvas id="pieSplit"></canvas></div>
+              <ul class="mt-3 text-sm space-y-1" id="legendSplit"></ul>
+            </div>
+          </div>
+
+          <!-- Tables -->
+          <div class="mt-6 grid lg:grid-cols-2 gap-6">
+            <!-- Recent Orders (mobile-first) -->
+            <div class="rounded-2xl glass overflow-hidden">
+            <div class="px-5 py-3 flex items-center justify-between">
+                <p class="font-medium">Đơn hàng gần đây</p>
+                <a href="#" class="text-sm opacity-80" @click.prevent="setTab('orders')">Xem tất cả</a>
+            </div>
+
+            <!-- Mobile: dùng card; ≥sm: bảng hàng ngang -->
+            <ul class="px-3 pb-3 sm:p-0">
+                <template x-for="o in state.orders" :key="o.id">
+                <li
+                    class="bg-white/5 dark:bg-white/5 sm:bg-transparent rounded-xl sm:rounded-none
+                        border border-white/10 sm:border-0
+                        p-4 sm:px-5 sm:py-3
+                        mb-3 sm:mb-0 sm:border-t sm:border-white/10
+                        flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
+                    <!-- avatar -->
+                    <div class="w-9 h-9 rounded-lg glass grid place-items-center shrink-0">ĐH</div>
+
+                    <!-- left: title + date -->
+                    <div class="sm:mr-auto">
+                    <div class="font-medium leading-tight" x-text="o.title"></div>
+                    <div class="text-xs opacity-75 mt-0.5" x-text="o.date"></div>
+                    </div>
+
+                    <!-- right: amount + status -->
+                    <div class="flex items-center justify-between sm:justify-end gap-2 sm:gap-3">
+                    <div class="text-right">
+                        <div class="font-semibold leading-none" x-text="(o.amount>0?'+ ':'') + vnd(o.amount)"></div>
+                    </div>
+
+                    <div class="flex items-center gap-1.5">
+                        <span
+                        class="text-[11px] px-2 py-1 rounded-full border whitespace-nowrap"
+                        :class="o.status==='Thành công'
+                                ? 'border-emerald-400 text-emerald-300'
+                                : 'border-amber-400 text-amber-300'"
+                        x-text="o.status"></span>
+                        <i :data-lucide="o.status==='Thành công' ? 'check' : 'clock'" class="w-4 h-4 opacity-70"></i>
+                    </div>
+                    </div>
+                </li>
+                </template>
+            </ul>
+            </div>
+
+
+            <!-- Top Products -->
+            <div class="rounded-2xl glass overflow-hidden">
+              <div class="px-5 py-3 flex items-center justify-between">
+                <p class="font-medium">Top sản phẩm bán chạy</p>
+                <a href="#" class="text-sm opacity-80" @click.prevent="setTab('products')">Quản lý</a>
+              </div>
+              <div class="table-wrap">
+                <table class="responsive text-sm">
+                  <thead class="text-left opacity-80 border-b border-white/10">
+                    <tr><th class="px-5 py-2">Sản phẩm</th><th class="px-2 py-2">Đã bán</th><th class="px-2 py-2">Doanh thu</th></tr>
+                  </thead>
+                  <tbody>
+                    <template x-for="p in state.top" :key="p.name">
+                      <tr class="border-b border-white/5">
+                        <td class="px-5 py-2" data-label="Sản phẩm" x-text="p.name"></td>
+                        <td class="px-2 py-2" data-label="Đã bán" x-text="p.qty"></td>
+                        <td class="px-2 py-2 font-medium" data-label="Doanh thu" x-text="vnd(p.rev)"></td>
+                      </tr>
+                    </template>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- PRODUCTS -->
+        <section x-show="state.activeTab==='products'" x-cloak>
+          <div class="flex items-center justify-between gap-3 flex-wrap">
+            <h2 class="text-xl font-semibold">Sản phẩm</h2>
+            <div class="flex gap-2">
+              <input class="w-52 px-3 py-2 rounded-xl glass" placeholder="Tìm theo tên..." x-model="state.search">
+              <button class="px-3 py-2 rounded-xl glass" @click="openProductModal()">+ Thêm sản phẩm</button>
+            </div>
+          </div>
+          <div class="mt-4 rounded-2xl glass overflow-hidden table-wrap">
+            <table class="responsive text-sm">
+              <thead class="text-left opacity-80 border-b border-white/10">
+                <tr><th class="px-4 py-2">Tên</th><th class="px-2 py-2">Danh mục</th><th class="px-2 py-2">Giá</th><th class="px-2 py-2">Tồn</th><th class="px-4 py-2 text-right">Thao tác</th></tr>
+              </thead>
+              <tbody>
+                <template x-for="p in filteredProducts()" :key="p.id">
+                  <tr class="border-b border-white/5">
+                    <td class="px-4 py-2" data-label="Tên" x-text="p.name"></td>
+                    <td class="px-2 py-2" data-label="Danh mục" x-text="p.cat"></td>
+                    <td class="px-2 py-2 font-medium" data-label="Giá" x-text="vnd(p.price)"></td>
+                    <td class="px-2 py-2" data-label="Tồn" x-text="p.stock"></td>
+                    <td class="px-4 py-2" data-label="Thao tác">
+                      <div class="flex justify-end gap-2 sm:mobile-actions">
+                        <button class="px-2 py-1.5 rounded-xl glass" @click="openProductModal(p)"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+                        <button class="px-2 py-1.5 rounded-xl glass" @click="deleteProduct(p.id)"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ORDERS -->
+        <section x-show="state.activeTab==='orders'" x-cloak>
+          <div class="flex items-center justify-between gap-3 flex-wrap">
+            <h2 class="text-xl font-semibold">Đơn hàng</h2>
+            <div class="flex gap-2">
+              <input class="w-56 px-3 py-2 rounded-xl glass" placeholder="Tìm theo mã/khách..." x-model="state.search">
+              <button class="px-3 py-2 rounded-xl glass" @click="openCreateOrder()">+ Tạo đơn</button>
+            </div>
+          </div>
+          <div class="mt-4 rounded-2xl glass overflow-hidden table-wrap">
+            <table class="responsive text-sm">
+              <thead class="text-left opacity-80 border-b border-white/10">
+                <tr><th class="px-4 py-2">Mã</th><th class="px-2 py-2">Khách hàng</th><th class="px-2 py-2">Ngày</th><th class="px-2 py-2">Trạng thái</th><th class="px-2 py-2">Tổng</th></tr>
+              </thead>
+              <tbody>
+                <template x-for="o in filteredOrders()" :key="o.id">
+                  <tr class="border-b border-white/5">
+                    <td class="px-4 py-2" data-label="Mã" x-text="o.id"></td>
+                    <td class="px-2 py-2" data-label="Khách hàng" x-text="o.cus"></td>
+                    <td class="px-2 py-2" data-label="Ngày" x-text="o.date"></td>
+                    <td class="px-2 py-2" data-label="Trạng thái">
+                      <span class="text-xs px-2 py-1 rounded-full border" :class="o.status==='Thành công' ? 'border-emerald-400 text-emerald-300':'border-amber-400 text-amber-300'" x-text="o.status"></span>
+                    </td>
+                    <td class="px-2 py-2 font-medium" data-label="Tổng" x-text="vnd(o.total)"></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- CUSTOMERS -->
+        <section x-show="state.activeTab==='customers'" x-cloak>
+          <div class="flex items-center justify-between gap-3 flex-wrap">
+            <h2 class="text-xl font-semibold">Khách hàng</h2>
+            <div class="flex gap-2">
+              <input class="w-56 px-3 py-2 rounded-xl glass" placeholder="Tìm theo tên/SĐT..." x-model="state.search">
+              <button class="px-3 py-2 rounded-xl glass" @click="openCustomerModal()">+ Thêm khách</button>
+            </div>
+          </div>
+          <div class="mt-4 rounded-2xl glass overflow-hidden table-wrap">
+            <table class="responsive text-sm">
+              <thead class="text-left opacity-80 border-b border-white/10">
+                <tr><th class="px-4 py-2">Tên</th><th class="px-2 py-2">SĐT</th><th class="px-2 py-2">Địa chỉ</th><th class="px-4 py-2 text-right">Thao tác</th></tr>
+              </thead>
+              <tbody>
+                <template x-for="c in filteredCustomers()" :key="c.id">
+                  <tr class="border-b border-white/5">
+                    <td class="px-4 py-2" data-label="Tên" x-text="c.name"></td>
+                    <td class="px-2 py-2" data-label="SĐT" x-text="c.phone"></td>
+                    <td class="px-2 py-2" data-label="Địa chỉ" x-text="c.addr"></td>
+                    <td class="px-4 py-2" data-label="Thao tác">
+                      <div class="flex justify-end gap-2 sm:mobile-actions">
+                        <button class="px-2 py-1.5 rounded-xl glass" @click="openCustomerModal(c)"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+                        <button class="px-2 py-1.5 rounded-xl glass" @click="deleteCustomer(c.id)"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+
+      <footer class="py-6 text-center text-xs opacity-70">© 2025 Đồ Thờ Đại Lộc</footer>
+    </div>
+  </div>
+
+  <!-- ===== Mobile Dock ===== -->
+  <div class="dock-wrap lg:hidden">
+    <div class="dock">
+      <div class="dock-grid relative">
+        <a href="#" class="dock-item" :class="{ 'active': state.activeTab==='home' }" @click.prevent="setTab('home')">
+          <i data-lucide="layout-dashboard"></i><span>Home</span>
+          <span class="indicator" x-show="state.activeTab==='home'"></span>
+        </a>
+        <a href="#" class="dock-item" :class="{ 'active': state.activeTab==='products' }" @click.prevent="setTab('products')">
+          <i data-lucide="package"></i><span>Products</span>
+          <span class="indicator" x-show="state.activeTab==='products'"></span>
+        </a>
+        <div aria-hidden="true"></div>
+        <a href="#" class="dock-item" :class="{ 'active': state.activeTab==='orders' }" @click.prevent="setTab('orders')">
+          <i data-lucide="receipt-text"></i><span>Orders</span>
+          <span class="indicator" x-show="state.activeTab==='orders'"></span>
+        </a>
+        <a href="#" class="dock-item" :class="{ 'active': state.activeTab==='customers' }" @click.prevent="setTab('customers')">
+          <i data-lucide="users"></i><span>Clients</span>
+          <span class="indicator" x-show="state.activeTab==='customers'"></span>
+        </a>
+      </div>
+
+      <button class="fab" @click="openCreateOrder()" aria-label="Tạo đơn">
+        <i data-lucide="sparkles"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== Modals (Create/Product/Customer) giữ nguyên logic) ===== -->
+  <div class="modals">
+    <!-- Create Order (chưa làm) -->
+    <div x-show="state.showCreate" x-cloak
+      x-transition.opacity
+      class="fixed inset-0 z-50 bg-black/30 grid place-items-center p-4"
+      @keydown.escape.window="state.showCreate=false"
+      @click.outside="state.showCreate=false"
+    >
+      <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-md" @click.stop>
+        <h3 class="text-lg font-semibold">Tạo đơn hàng</h3>
+        <p class="mt-2 text-sm opacity-80">Chức năng đang phát triển...</p>
+        <div class="mt-6 flex justify-end gap-2">
+          <button class="px-4 py-2 rounded-xl glass" @click="state.showCreate=false">Đóng</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Product Modal -->
+    <div x-show="state.showProduct" x-cloak
+      x-transition.opacity
+      class="fixed inset-0 z-50 bg-black/30 grid place-items-center p-4"
+      @keydown.escape.window="state.showProduct=false"
+      @click.outside="state.showProduct=false"
+    >
+      <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-md" @click.stop>
+        <h3 class="text-lg font-semibold" x-text="state.editingProduct ? 'Chỉnh sửa sản phẩm' : 'Thêm sản phẩm mới'"></h3>
+        <form class="mt-4 space-y-4" @submit.prevent="saveProduct()">
+          <div>
+            <label class="block text-sm font-medium mb-1" for="prodName">Tên sản phẩm</label>
+            <input id="prodName" type="text" class="w-full px-3 py-2 rounded-xl glass focus:outline-none" x-model="formProduct.name" required>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1" for="prodCat">Danh mục</label>
+            <input id="prodCat" type="text" class="w-full px-3 py-2 rounded-xl glass focus:outline-none" x-model="formProduct.cat" required>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1" for="prodPrice">Giá (VND)</label>
+            <input id="prodPrice" type="number" min="0" class="w-full px-3 py-2 rounded-xl glass focus:outline-none" x-model.number="formProduct.price" required>
+          </div>
+            <div>
+                <label class="block text-sm font-medium mb-1" for="prodStock">Tồn kho</label>
+                <input id="prodStock" type="number" min="0" class="w-full px-3 py-2 rounded-xl glass focus:outline-none" x-model.number="formProduct.stock" required>   
+            </div>
+          <div class="flex justify-end gap-2">
+            <button type="button" class="px-4 py-2 rounded-xl glass" @click="state.showProduct=false">Hủy</button>
+            <button type="submit" class="px-4 py-2 rounded-xl glass bg-blue-600 text-white hover:bg-blue-700">
+              <span x-text="state.editingProduct ? 'Lưu thay đổi' : 'Thêm sản phẩm'"></span>
+            </button>
+            </div>
+        </form>
+      </div>    
+    </div>
+    <!-- Customer Modal -->
+    <div x-show="state.showCustomer" x-cloak
+      x-transition.opacity
+      class="fixed inset-0 z-50 bg-black/30 grid place-items-center p-4"
+      @keydown.escape.window="state.showCustomer=false"
+      @click.outside="state.showCustomer=false"
+    >
+      <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-md" @click.stop>
+        <h3 class="text-lg font-semibold" x-text="state.editingCustomer ? 'Chỉnh sửa khách hàng' : 'Thêm khách hàng mới'"></h3>
+        <form class="mt-4 space-y-4" @submit.prevent="saveCustomer()">
+          <div>
+            <label class="block text-sm font-medium mb-1" for="custName">Tên khách hàng</label>
+            <input id="custName" type="text" class="w-full px-3 py-2 rounded-xl glass focus:outline-none" x-model="formCustomer.name" required>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1" for="custPhone">Số điện thoại</label>
+            <input id="custPhone" type="text" class="w-full px-3 py-2 rounded-xl glass focus:outline-none" x-model="formCustomer.phone" required>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1" for="custAddr">Địa chỉ</label>
+            <input id="custAddr" type="text" class="w-full px-3 py-2 rounded-xl glass focus:outline-none" x-model="formCustomer.addr" required>
+          </div>
+          <div class="flex justify-end gap-2">
+            <button type="button" class="px-4 py-2 rounded-xl glass" @click="state.showCustomer=false">Hủy</button>
+            <button type="submit" class="px-4 py-2 rounded-xl glass bg-blue-600 text-white hover:bg-blue-700">
+              <span x-text="state.editingCustomer ? 'Lưu thay đổi' : 'Thêm khách hàng'"></span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  <script>
+    function ui(){
+      return {
+        state:{
+          dark:true, range:30, activeTab:'home',
+          mobileMenu:false, showCreate:false,
+          showProduct:false, editingProduct:false,
+          showCustomer:false, editingCustomer:false,
+          search:'',
+          orders:[
+            { id:'#1001', cus:'Nguyễn Anh', title:'ĐH #1001 — Nguyễn Anh', status:'Thành công', date:'Hôm nay 12:40', total:4990000, amount:4990000 },
+            { id:'#1002', cus:'Lê Mai', title:'ĐH #1002 — Lê Mai (COD)', status:'Chờ xử lý', date:'Hôm nay 15:12', total:1250000, amount:1250000 },
+            { id:'#1003', cus:'Trần Tín', title:'ĐH #1003 — Trần Tín', status:'Thành công', date:'Hôm qua 18:02', total:12460000, amount:12460000 },
+          ],
+          products:[
+            { id:1, name:'Tượng Quan Âm 40cm', cat:'Tượng Phật', price:920000, stock:26 },
+            { id:2, name:'Bát hương men rạn 20cm', cat:'Đồ thờ', price:790000, stock:18 },
+            { id:3, name:'Đèn dầu đồng 25cm', cat:'Đồ thờ', price:500000, stock:15 },
+          ],
+          customers:[
+            { id:1, name:'Nguyễn Anh', phone:'0901 234 567', addr:'Q.1, TP.HCM' },
+            { id:2, name:'Lê Mai', phone:'0908 765 432', addr:'Q.3, TP.HCM' },
+            { id:3, name:'Trần Tín', phone:'0912 888 999', addr:'Thủ Đức, TP.HCM' },
+          ],
+          top:[
+            { name:'Tượng Quan Âm 40cm', qty:26, rev:23900000 },
+            { name:'Bát hương men rạn 20cm', qty:18, rev:14200000 },
+            { name:'Đèn dầu đồng 25cm', qty:15, rev:7500000 },
+          ]
+        },
+        charts:{ line:null, pie:null },
+        formProduct:{ id:null, name:'', cat:'', price:0, stock:0 },
+        formCustomer:{ id:null, name:'', phone:'', addr:'' },
+
+        vnd(n){ return new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(n).replace('₫','₫'); },
+        tabLabel(t){ return {home:'Trang chủ',products:'Sản phẩm',orders:'Đơn hàng',customers:'Khách hàng'}[t] || 'Trang chủ'; },
+        navClass(t){ return (this.state.activeTab===t ? 'glass-strong' : 'hover:glass') + ' cursor-pointer'; },
+
+        setTab(t){ this.state.activeTab=t; this.state.search=''; this.$nextTick(()=>{ if(window.lucide) lucide.createIcons(); if(t==='home') this.renderCharts(); }); },
+
+        toggleTheme(){
+          this.state.dark=!this.state.dark;
+          localStorage.setItem('themeDark', this.state.dark?'1':'0');
+          this.$nextTick(()=>{ if (window.lucide) lucide.createIcons(); });
+        },
+        openCreateOrder(){ this.state.showCreate=true; },
+
+        // PRODUCTS CRUD
+        openProductModal(p=null){
+          if(p){ this.state.editingProduct=true; this.formProduct={...p}; }
+          else { this.state.editingProduct=false; this.formProduct={ id:null, name:'', cat:'', price:0, stock:0 }; }
+          this.state.showProduct=true;
+        },
+        saveProduct(){
+          if(this.state.editingProduct){
+            const idx=this.state.products.findIndex(x=>x.id===this.formProduct.id);
+            if(idx>-1) this.state.products[idx]={...this.formProduct};
+          }else{
+            const nid= (this.state.products.at(-1)?.id || 0) + 1;
+            this.state.products.push({...this.formProduct, id:nid});
+          }
+          this.state.showProduct=false;
+        },
+        deleteProduct(id){
+          if(confirm('Xóa sản phẩm này?')){
+            this.state.products = this.state.products.filter(p=>p.id!==id);
+          }
+        },
+
+        // CUSTOMERS CRUD
+        openCustomerModal(c=null){
+          if(c){ this.state.editingCustomer=true; this.formCustomer={...c}; }
+          else { this.state.editingCustomer=false; this.formCustomer={ id:null, name:'', phone:'', addr:'' }; }
+          this.state.showCustomer=true;
+        },
+        saveCustomer(){
+          if(this.state.editingCustomer){
+            const idx=this.state.customers.findIndex(x=>x.id===this.formCustomer.id);
+            if(idx>-1) this.state.customers[idx]={...this.formCustomer};
+          }else{
+            const nid= (this.state.customers.at(-1)?.id || 0) + 1;
+            this.state.customers.push({...this.formCustomer, id:nid});
+          }
+          this.state.showCustomer=false;
+        },
+        deleteCustomer(id){
+          if(confirm('Xóa khách hàng này?')){
+            this.state.customers = this.state.customers.filter(c=>c.id!==id);
+          }
+        },
+
+        // Filters
+        filteredProducts(){
+          const q=this.state.search.toLowerCase().trim();
+          return this.state.products.filter(p => !q || p.name.toLowerCase().includes(q) || p.cat.toLowerCase().includes(q));
+        },
+        filteredOrders(){
+          const q=this.state.search.toLowerCase().trim();
+          return this.state.orders.filter(o => !q || o.id.toLowerCase().includes(q) || o.cus.toLowerCase().includes(q));
+        },
+        filteredCustomers(){
+          const q=this.state.search.toLowerCase().trim();
+          return this.state.customers.filter(c => !q || c.name.toLowerCase().includes(q) || c.phone.replace(/\s/g,'').includes(q.replace(/\s/g,'')));
+        },
+
+       boot(){
+            // đọc lưu trữ
+            const saved = localStorage.getItem('themeDark');
+            if (saved !== null) this.state.dark = (saved === '1');
+
+            // đảm bảo <html> khớp ngay khi Alpine khởi động
+            document.documentElement.classList.toggle('dark', this.state.dark);
+
+            // icon / charts
+            setTimeout(() => { if (window.lucide) lucide.createIcons(); }, 0);
+            this.renderCharts?.();
+
+            // theo dõi chuyển theme, cập nhật ngay class + localStorage
+            this.$watch('state.dark', (val) => {
+                document.documentElement.classList.toggle('dark', val);
+                localStorage.setItem('themeDark', val ? '1' : '0');
+            });
+            },
+
+
+        renderCharts(){
+          this.$nextTick(()=>{
+            const days=Number(this.state.range||30);
+            const labels=Array.from({length:days},(_,i)=>i%2===0?`${i+1}`:'');
+            const values=Array.from({length:days},()=>Math.round(5+Math.random()*10));
+            const lc=document.getElementById('lineRevenue');
+            if(lc){
+              if(this.charts.line) this.charts.line.destroy();
+              this.charts.line=new Chart(lc,{type:'line',data:{labels,
+                datasets:[{data:values,fill:true,tension:.35,pointRadius:0,
+                  backgroundColor:'rgba(212,167,55,.20)',borderColor:'rgba(212,167,55,.9)',borderWidth:2}]},
+                options:{plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(0,0,0,.08)'},
+                  ticks:{callback:v=>v+' tr'}}}}});
+            }
+            const pc=document.getElementById('pieSplit');
+            if(pc){
+              if(this.charts.pie) this.charts.pie.destroy();
+              const pieData={labels:['Tượng Phật','Đồ thờ','Nhang','Đèn dầu','Khác'],values:[40,25,15,12,8]};
+              this.charts.pie=new Chart(pc,{type:'doughnut',data:{labels:pieData.labels,datasets:[{data:pieData.values,backgroundColor:['#fbbf24','#fb7185','#34d399','#60a5fa','#a78bfa']}]},options:{cutout:'62%',plugins:{legend:{display:false}}}});
+              const legend=document.getElementById('legendSplit');
+              if(legend) legend.innerHTML=pieData.labels.map((l,i)=>`<li class='flex justify-between'><span>${l}</span><span class='font-medium'>${pieData.values[i]}%</span></li>`).join('');
+            }
+          });
+        }
+      }
+    }
+  </script>
+</body>
+</html>
