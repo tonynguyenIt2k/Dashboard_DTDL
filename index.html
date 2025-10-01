@@ -10,14 +10,15 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<script>
-  try {
-    const darkOn = localStorage.getItem('themeDark') === '1'
-      // nếu chưa lưu, có thể fallback theo OS:
-      || (localStorage.getItem('themeDark') === null && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    if (darkOn) document.documentElement.classList.add('dark');
-  } catch (e) {}
-</script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons/css/flag-icons.min.css">
+
+  <script>
+    try {
+      const darkOn = localStorage.getItem('themeDark') === '1'
+        || (localStorage.getItem('themeDark') === null && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      if (darkOn) document.documentElement.classList.add('dark');
+    } catch (e) {}
+  </script>
 
   <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -39,11 +40,9 @@
     }
   </script>
 
-  <!-- Alpine -->
+  <!-- Alpine / Lucide / Chart.js -->
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-  <!-- Lucide -->
   <script defer src="https://unpkg.com/lucide@latest"></script>
-  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
   <style>
@@ -52,119 +51,104 @@
     .glass { background: rgba(255,255,255,.06); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,.12);box-shadow: 0 10px 40px -10px rgba(0,0,0,.35); }
     .glass-strong { background: linear-gradient(135deg, rgba(212,167,55,.18), rgba(136,98,45,.1)); backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,.14); }
     [x-cloak]{display:none!important;}
+    .fi { border-radius: 3px; }
+    /* ====== SIDEBAR (UNIFIED) ====== */
+
+    /* Sidebar khống chế bề rộng & cho phép phần tử con lòi ra (toggle) */
+    .sidebar{ position:relative; z-index:30; overflow:visible; width:240px; transition:width .22s ease; }
+    .sidebar--collapsed{ width:72px; }
+
+    /* Nút toggle nổi bám mép phải sidebar */
+    .sidebar-toggle{
+    position:absolute; top:16px; right:-14px;
+    width:25px; height:25px; border-radius:12px;
+    display:grid; place-items:center;
+    box-shadow:0 8px 30px -12px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.12);
+    z-index:50;
+    }
+    html:not(.dark) .sidebar-toggle{
+    box-shadow:0 8px 30px -12px rgba(0,0,0,.25), inset 0 0 0 1px rgba(0,0,0,.08);
+    }
+
+    /* ===== Nav link – base */
+    .sidebar .nav-link{
+    display:flex; align-items:center; gap:.6rem;
+    padding:.5rem .75rem; border-radius:14px;
+    color:inherit; text-decoration:none;
+    border:1px solid transparent;
+    transition:background .15s ease, box-shadow .15s ease, border-color .15s ease, transform .15s ease;
+    }
+    .sidebar .nav-link i{ width:20px; height:20px; flex-shrink:0; }
+
+    /* Hover chỉ áp dụng cho item KHÔNG active */
+    .sidebar .nav-link:hover:not(.is-active){ background:rgba(255,255,255,.06); }
+    html:not(.dark) .sidebar .nav-link:hover:not(.is-active){ background:rgba(0,0,0,.04); }
+
+    /* Active “pill” đẹp */
+    .sidebar .nav-link.is-active{
+    background:linear-gradient(135deg, rgba(212,167,55,.18), rgba(136,98,45,.10));
+    border-color:rgba(255,255,255,.14);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.08), 0 10px 30px -15px rgba(0,0,0,.45);
+    }
+
+    /* Focus-visible để A11y tốt hơn */
+    .sidebar .nav-link:focus-visible{ outline:2px solid rgba(59,130,246,.6); outline-offset:2px; }
+
+    /* ===== Collapsed mode: chỉ icon, không “pill” dài */
+    .sidebar--collapsed .nav-link{ justify-content:center; gap:0; padding:.5rem; }
+    .sidebar--collapsed .nav-link span, .sidebar--collapsed .nav-link .label{ display:none; } /* ẩn label */
+
+    .sidebar--collapsed .nav-link.is-active{ background:transparent; border-color:transparent; }
+    .sidebar--collapsed .nav-link.is-active i{
+    padding:6px; border-radius:10px;
+    background:rgba(255,255,255,.10);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);
+    }
+    .sidebar--collapsed .nav-link:hover i{
+    background:rgba(255,255,255,.08); border-radius:10px; padding:6px;
+    }
+    html:not(.dark) .sidebar--collapsed .nav-link.is-active i,
+    html:not(.dark) .sidebar--collapsed .nav-link:hover i{
+    background:rgba(0,0,0,.06); box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);
+    }
+   .dark .select-dark { color-scheme: dark; }
+
+    /* Ẩn tên brand khi thu gọn */
+    .sidebar--collapsed .brand-name{ display:none; }
+
+    /* Đảm bảo cột nội dung luôn dưới sidebar */
+    .main-shell{ position:relative; z-index:10; }
+
+
 
     /* ===== Mobile Dock (clean pill + FAB giữa) ===== */
     .dock-wrap{ position:fixed; left:0; right:0; bottom:0; z-index:50; pointer-events:none; }
-    .dock{
-      pointer-events:auto;
-      width:min(740px,94vw);
-      margin:0 auto max(.9rem, env(safe-area-inset-bottom));
-      position:relative;
-      border-radius:20px;
-      padding:.65rem 1rem;
-      backdrop-filter:blur(12px);
-      background:rgba(16,16,20,.55);
-      border:1px solid rgba(255,255,255,.10);
-      box-shadow:0 18px 60px -24px rgba(0,0,0,.65), inset 0 1px 0 rgba(255,255,255,.08);
-    }
-
-    /* 5 cột: chừa 72px ở giữa cho FAB */
-    .dock-grid{
-      display:grid;
-      grid-template-columns:1fr 1fr 72px 1fr 1fr;
-      align-items:center;
-      justify-items:center;
-      gap:.25rem;
-      min-height:56px;
-    }
-
-    .dock-item{
-      position:relative; display:flex; flex-direction:column; align-items:center;
-      gap:6px; font-size:.72rem; color:rgba(255,255,255,.74);
-      padding:.25rem .35rem;
-    }
+    .dock{ pointer-events:auto; width:min(740px,94vw); margin:0 auto max(.9rem, env(safe-area-inset-bottom)); position:relative; border-radius:20px; padding:.65rem 1rem; backdrop-filter:blur(12px); background:rgba(16,16,20,.55); border:1px solid rgba(255,255,255,.10); box-shadow:0 18px 60px -24px rgba(0,0,0,.65), inset 0 1px 0 rgba(255,255,255,.08); }
+    .dock-grid{ display:grid; grid-template-columns:1fr 1fr 72px 1fr 1fr; align-items:center; justify-items:center; gap:.25rem; min-height:56px; }
+    .dock-item{ position:relative; display:flex; flex-direction:column; align-items:center; gap:6px; font-size:.5rem; color:rgba(255,255,255,.74); padding:.25rem .35rem; }
     .dock-item i{ width:1.3rem; height:1.3rem }
-    .dock-item.active{ color:#fff }
-    .dock-item.active { transform: translateY(-1px); transition: transform .18s ease; }
-
-    /* gạch phát sáng dưới tab */
-    .indicator{
-      position:absolute; left:50%; transform:translateX(-50%);
-      bottom:-6px; width:36px; height:8px; border-radius:999px;
-      background:#39ff6f; filter:blur(2px);
-    }
-
-    /* Nút nổi giữa */
-    .fab{
-      position:absolute; left:50%; top:0; transform:translate(-50%,-35%);
-      width:72px; height:72px; border-radius:9999px; display:grid; place-items:center;
-      background:linear-gradient(135deg, #2563eb, #3b82f6);
-      color:#fff; border:8px solid rgba(16,16,20,.55);
-      box-shadow:0 20px 40px rgba(37,99,235,.55), inset 0 1px 0 rgba(255,255,255,.28);
-      pointer-events:auto;
-    }
+    .dock-item.active{ color:#fff; transform: translateY(-1px); transition: transform .18s ease; }
+    .indicator{ position:absolute; left:50%; transform:translateX(-50%); bottom:0px; width:43px; height:2px; border-radius:999px; background:#2b6cee; filter: blur(1px); }
+    .fab{ position:absolute; left:50%; top:0; transform:translate(-50%,-35%); width:72px; height:72px; border-radius:9999px; display:grid; place-items:center; background:linear-gradient(135deg, #2563eb, #3b82f6); color:#fff; border:8px solid rgba(16,16,20,.55); box-shadow:0 20px 40px rgba(37,99,235,.55), inset 0 1px 0 rgba(255,255,255,.28); pointer-events:auto; }
     .fab i{ width:1.25rem; height:1.25rem }
-
-    /* tránh dock đè nội dung */
     .has-dock{ padding-bottom:6.2rem; }
-
-    /* Light theme */
     html:not(.dark) .dock{ background:rgba(255,255,255,.75); border-color:rgba(0,0,0,.08); }
     html:not(.dark) .dock-item{ color:rgba(0,0,0,.70); }
     html:not(.dark) .dock-item.active{ color:#0f172a; }
     html:not(.dark) .fab{ border-color:rgba(25, 1, 1, 0.423); }
-
-
-    /* ===== Tables -> Mobile cards ===== */
-    .table-wrap{ border-radius:16px; overflow:hidden; }
-    table.responsive { width:100%; }
-
-    /* Desktop keeps normal tables */
-    @media (max-width: 640px){
-      .table-wrap { padding: .5rem; border-radius: 16px; }
-      table.responsive { display:block; border-collapse:separate; border-spacing:0 10px; }
-      table.responsive thead { display:none; }
-      table.responsive tbody { display:block; }
-      table.responsive tr {
-        display:block;
-        background: rgba(255,255,255,.06);
-        border:1px solid rgba(255,255,255,.10);
-        border-radius:16px;
-        padding:10px 12px;
-        margin:10px 0;
-      }
-      html:not(.dark) table.responsive tr{
-        background: rgba(0,0,0,.03);
-        border-color: rgba(0,0,0,.06);
-      }
-      table.responsive td{
-        display:flex;
-        align-items:center;
-        justify-content:space-between;
-        padding:8px 4px;
-        border-bottom:1px dashed rgba(255,255,255,.08);
-        font-size:.95rem;
-      }
-      html:not(.dark) table.responsive td{ border-bottom-color: rgba(0,0,0,.06); }
-      table.responsive td:last-child{ border-bottom:0; padding-bottom:2px; }
-
-      /* label bên trái mỗi ô */
-      table.responsive td::before{
-        content: attr(data-label);
-        font-weight:600;
-        margin-right:10px;
-        opacity:.8;
-      }
-
-      /* ô actions: các nút to hơn, căn phải */
-      .mobile-actions{
-        display:flex; gap:.5rem; justify-content:flex-end; width:100%;
-      }
-      .mobile-actions > button{
-        padding:.5rem .6rem; border-radius:12px;
-      }
-      
-    }
+    /* ===== Tables -> Mobile cards ===== */ 
+    .table-wrap{ border-radius:16px; overflow:hidden; } 
+    table.responsive { width:100%; } /* Desktop keeps normal tables */ 
+    @media (max-width: 640px){ .table-wrap { padding: .5rem; border-radius: 16px; } 
+    table.responsive { display:block; border-collapse:separate; border-spacing:0 10px; } 
+    table.responsive thead { display:none; } table.responsive tbody { display:block; } 
+    table.responsive tr { display:block; background: rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.10); border-radius:16px; padding:10px 12px; margin:10px 0; } 
+    html:not(.dark) table.responsive tr{ background: rgba(0,0,0,.03); border-color: rgba(0,0,0,.06); } 
+    table.responsive td{ display:flex; align-items:center; justify-content:space-between; padding:8px 4px; border-bottom:1px dashed rgba(255,255,255,.08); font-size:.95rem; } 
+    html:not(.dark) table.responsive td{ border-bottom-color: rgba(0,0,0,.06); } 
+    table.responsive td:last-child{ border-bottom:0; padding-bottom:2px; } /* label bên trái mỗi ô */ 
+    table.responsive td::before{ content: attr(data-label); font-weight:600; margin-right:10px; opacity:.8; } /* ô actions: các nút to hơn, căn phải */ 
+    .mobile-actions{ display:flex; gap:.5rem; justify-content:flex-end; width:100%; } .mobile-actions > button{ padding:.5rem .6rem; border-radius:12px; } }
   </style>
 </head>
 <body class="min-h-screen text-slate-800 dark:text-slate-100">
@@ -190,102 +174,124 @@
   </svg>
 
   <!-- App layout -->
-  <div class="min-h-screen flex flex-col lg:grid lg:grid-cols-[240px_1fr]">
+ <div class="min-h-screen flex flex-col lg:grid layout-grid"
+     :style="state.sidebarCollapsed ? 'grid-template-columns:72px 1fr' : 'grid-template-columns:240px 1fr'">
+
+
     <!-- Sidebar desktop -->
-    <aside class="hidden lg:block border-r border-white/10 bg-white/60 dark:bg-slate-900/40 backdrop-blur">
-      <div class="p-4 flex items-center gap-2">
-        <div class="w-9 h-9 rounded-xl grid place-items-center glass font-semibold">Đ</div>
-        <div class="font-semibold">Đồ Thờ Đại Lộc</div>
-      </div>
-      <nav class="px-2 space-y-1">
-        <a @click.prevent="setTab('home')" :class="navClass('home')" class="flex items-center gap-2 px-3 py-2 rounded-xl"><i data-lucide="layout-dashboard" class="w-4 h-4"></i>Tổng quan</a>
-        <a @click.prevent="setTab('products')" :class="navClass('products')" class="flex items-center gap-2 px-3 py-2 rounded-xl"><i data-lucide="package" class="w-4 h-4"></i>Sản phẩm</a>
-        <a @click.prevent="setTab('orders')" :class="navClass('orders')" class="flex items-center gap-2 px-3 py-2 rounded-xl"><i data-lucide="receipt-text" class="w-4 h-4"></i>Đơn hàng</a>
-        <a @click.prevent="setTab('customers')" :class="navClass('customers')" class="flex items-center gap-2 px-3 py-2 rounded-xl"><i data-lucide="users" class="w-4 h-4"></i>Khách hàng</a>
-      </nav>
-      <div class="px-4 mt-6">
-        <button class="w-full px-3 py-2 rounded-xl glass flex items-center gap-2 justify-center" @click="openCreateOrder()"><i data-lucide="plus" class="w-4 h-4"></i> Tạo đơn hàng</button>
-      </div>
+    <aside :class="['hidden lg:block border-r border-white/10 bg-white/60 dark:bg-slate-900/40 backdrop-blur sidebar',
+                state.sidebarCollapsed ? 'sidebar--collapsed' : '']">
+    <!-- Header + toggle -->
+    <div class="p-4 flex items-center gap-2">
+        <div class="w-9 h-9 rounded-xl grid place-items-center glass font-semibold shrink-0">Đ</div>
+        <div class="font-semibold truncate" x-show="!state.sidebarCollapsed">Đồ Thờ Đại Lộc</div>
+
+        <!-- Nút thu gọn/mở rộng -->
+        <button
+            class="sidebar-toggle glass"
+            @click="state.sidebarCollapsed = !state.sidebarCollapsed; $nextTick(()=>{ if(window.lucide) lucide.createIcons(); })"
+            :title="state.sidebarCollapsed ? (t?.('expand') ?? 'Mở rộng') : (t?.('collapse') ?? 'Thu gọn')">
+            <i style="height:15px;" :data-lucide="state.sidebarCollapsed ? 'chevron-right' : 'chevron-left'"></i>
+        </button>
+    </div>
+
+    <!-- Nav -->
+    <nav class="px-2 space-y-1">
+    <a @click.prevent="setTab('home')"      :class="navClass('home')"      class="nav-link" :title="t('nav.overview')">
+        <i data-lucide="layout-dashboard" class="w-5 h-5"></i><span x-text="t('nav.overview')"></span>
+    </a>
+    <a @click.prevent="setTab('products')"  :class="navClass('products')"  class="nav-link" :title="t('nav.products')">
+        <i data-lucide="package" class="w-5 h-5"></i><span x-text="t('nav.products')"></span>
+    </a>
+    <a @click.prevent="setTab('orders')"    :class="navClass('orders')"    class="nav-link" :title="t('nav.orders')">
+        <i data-lucide="receipt-text" class="w-5 h-5"></i><span x-text="t('nav.orders')"></span>
+    </a>
+    <a @click.prevent="setTab('customers')" :class="navClass('customers')" class="nav-link" :title="t('nav.customers')">
+        <i data-lucide="users" class="w-5 h-5"></i><span x-text="t('nav.customers')"></span>
+    </a>
+    <a @click.prevent="setTab('posts')"     :class="navClass('posts')"     class="nav-link" :title="t('nav.posts')">
+        <i data-lucide="newspaper" class="w-5 h-5"></i><span x-text="t('nav.posts')"></span>
+    </a>
+    <a @click.prevent="setTab('banners')"   :class="navClass('banners')"   class="nav-link" :title="t('nav.banners')">
+        <i data-lucide="images" class="w-5 h-5"></i><span x-text="t('nav.banners')"></span>
+    </a>
+    </nav>
+
     </aside>
 
+
     <!-- Content -->
-    <div class="flex flex-col has-dock lg:pb-0">
+    <div class="flex flex-col has-dock lg:pb-0 main-shell">
       <!-- Topbar -->
       <header class="sticky top-0 z-40 border-b border-white/10 bg-white/70 dark:bg-slate-900/40 backdrop-blur">
         <div class="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
-            <button class="px-3 py-1.5 rounded-xl glass flex items-center" @click="toggleTheme()"><i :data-lucide="state.dark ? 'sun' : 'moon'" class="w-4 h-4"></i></button>
           <div class="relative flex-1 max-w-xl">
-            <input type="text" :placeholder="'Tìm trong '+tabLabel(state.activeTab)+'...'" class="w-full pl-10 pr-3 py-2 rounded-xl glass focus:outline-none" x-model="state.search">
+            <input type="text" :placeholder="t('search.placeholder', tabLabel(state.activeTab))" class="w-full pl-10 pr-3 py-2.5 rounded-xl glass focus:outline-none" x-model="state.search">
             <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
           </div>
-          <div x-data="{open:false}" class="relative">
-        <!-- Nút avatar -->
-        <button
-            @click="open=!open"
-            @keydown.escape.window="open=false"
-            @click.outside="open=false"
-            class="flex items-center gap-2 rounded-xl glass px-2 py-1.5 focus:outline-none"
-            aria-haspopup="menu"
-            :aria-expanded="open"
-        >
-            <span class="relative inline-block">
-            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRaUqSojztqZnRXSFvvlm_sX78WOWk7w4ZNxQ&s" alt="Avatar"
-                class="h-8 w-8 rounded-full object-cover ring-1 ring-black/5 dark:ring-white/10">
-            <!-- chấm online -->
-            <span class="absolute -right-0.5 -bottom-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900"></span>
-            </span>
-            <span class="hidden sm:block text-sm font-medium text-slate-700 dark:text-slate-200">Tony</span>
-            <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400"></i>
-        </button>
+          <!-- Language dropdown -->
+            <div x-data="{open:false}" class="relative">
+                <button @click="open=!open"
+                        @keydown.escape.window="open=false"
+                        @click.outside="open=false"
+                        class="px-2 py-3 rounded-xl glass text-sm flex items-center gap-2"
+                        aria-haspopup="menu"
+                        :aria-expanded="open">
+                    <i data-lucide="globe" class="w-4 h-4"></i>
+                    <span x-text="state.lang.toUpperCase()"></span>
+                    <i data-lucide="chevron-down" class="w-4 h-4 opacity-70"></i>
+                </button>
 
-        <!-- Panel dropdown -->
-        <div
-            x-show="open"
-            x-transition.opacity.scale.origin.top.right
-            class="absolute right-0 mt-2 w-64 rounded-2xl border border-white/10 bg-white/80 dark:bg-slate-900/70 backdrop-blur shadow-xl p-2"
-            style="display:none"
-            role="menu"
-        >
-            <!-- Header nhỏ -->
-            <div class="flex items-center gap-3 p-2 rounded-xl bg-white/50 dark:bg-white/5">
-            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRaUqSojztqZnRXSFvvlm_sX78WOWk7w4ZNxQ&s" alt="Avatar" class="h-9 w-9 rounded-full object-cover">
-            <div class="min-w-0">
-                <div class="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">Tony Nguyễn</div>
-                <div class="text-xs text-slate-500 dark:text-slate-400 truncate">tony@example.com</div>
+                <div x-show="open" x-transition.opacity.scale.origin.top.right
+                    class="absolute right-0 mt-2 w-48 rounded-xl border border-white/10
+                            bg-white/80 dark:bg-slate-900/80 backdrop-blur p-1 shadow-xl"
+                    style="display:none" role="menu">
+                    <!-- VI -->
+                    <button type="button" role="menuitem"
+                            @click="setLang('vi'); open=false"
+                            class="w-full flex items-center justify-between px-3 py-2 rounded-lg
+                                hover:bg-slate-100/70 dark:hover:bg-white/10">
+                    <span class="flex items-center gap-2">
+                        <span class="fi fi-vn" style="font-size:18px"></span>
+                        <span x-text="t('vietnamese')"></span>
+                    </span>
+                    <i data-lucide="check" class="w-4 h-4" x-show="state.lang==='vi'"></i>
+                    </button>
+
+                    <!-- EN -->
+                    <button type="button" role="menuitem"
+                            @click="setLang('en'); open=false"
+                            class="w-full flex items-center justify-between px-3 py-2 rounded-lg
+                                hover:bg-slate-100/70 dark:hover:bg-white/10">
+                    <span class="flex items-center gap-2">
+                        <!-- Chọn cờ: GB (🇬🇧) hoặc US (🇺🇸) -->
+                        <span class="fi fi-gb" style="font-size:18px"></span>
+                        <span x-text="t('english')"></span>
+                    </span>
+                    <i data-lucide="check" class="w-4 h-4" x-show="state.lang==='en'"></i>
+                    </button>
+
+                </div>
             </div>
-            </div>
 
-            <div class="my-2 h-px bg-slate-200/60 dark:bg-white/10"></div>
-
-            <!-- Mục menu -->
-            <a href="/profile" role="menuitem"
-            class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100/70 dark:hover:bg-white/10">
-            <i data-lucide="user" class="w-4 h-4"></i>
-            <span class="text-sm">Hồ sơ</span>
-            </a>
-
-            <a href="/settings" role="menuitem"
-            class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100/70 dark:hover:bg-white/10">
-            <i data-lucide="settings" class="w-4 h-4"></i>
-            <span class="text-sm">Cài đặt</span>
-            </a>
-
-            <button type="button" role="menuitem"
-            @click="toggleTheme(); open=false"
-            class="w-full text-left flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100/70 dark:hover:bg-white/10">
-            <i :data-lucide="state.dark ? 'sun' : 'moon'" class="w-4 h-4"></i>
-            <span class="text-sm">Chuyển giao diện</span>
+          <!-- Avatar dropdown (rút gọn) -->
+          <div x-data="{open:false}" class="relative hidden md:block">
+            <button @click="open=!open" @keydown.escape.window="open=false" @click.outside="open=false" class="flex items-center gap-2 rounded-xl glass px-2 py-1.5 focus:outline-none" aria-haspopup="menu" :aria-expanded="open">
+              <span class="relative inline-block">
+                <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRaUqSojztqZnRXSFvvlm_sX78WOWk7w4ZNxQ&s" alt="Avatar" class="h-8 w-8 rounded-full object-cover ring-1 ring-black/5 dark:ring-white/10">
+                <span class="absolute -right-0.5 -bottom-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900"></span>
+              </span>
+              <span class="hidden sm:block text-sm font-medium">Tony</span>
+              <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400"></i>
             </button>
-
-            <div class="my-2 h-px bg-slate-200/60 dark:bg-white/10"></div>
-
-            <a href="/logout" role="menuitem"
-            class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100/70 dark:hover:bg-white/10 text-rose-600 dark:text-rose-400">
-            <i data-lucide="log-out" class="w-4 h-4"></i>
-            <span class="text-sm">Đăng xuất</span>
-            </a>
-        </div>
-        </div>
+            <div x-show="open" x-transition.opacity.scale.origin.top.right class="absolute right-0 mt-2 w-64 rounded-2xl border border-white/10 bg-white/80 dark:bg-slate-900/70 backdrop-blur shadow-xl p-2" style="display:none" role="menu">
+              <a href="/profile" class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100/70 dark:hover:bg-white/10"><i data-lucide="user" class="w-4 h-4"></i><span x-text="t('profile')"></span></a>
+              <a href="/settings" class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100/70 dark:hover:bg-white/10"><i data-lucide="settings" class="w-4 h-4"></i><span x-text="t('settings')"></span></a>
+              <button type="button" @click="toggleTheme(); open=false" class="w-full text-left flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100/70 dark:hover:bg-white/10"><i :data-lucide="state.dark ? 'sun' : 'moon'" class="w-4 h-4"></i><span x-text="t('switchTheme')"></span></button>
+              <div class="my-2 h-px bg-slate-200/60 dark:bg-white/10"></div>
+              <a href="/logout" class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-100/70 dark:hover:bg-white/10 text-rose-600 dark:text-rose-400"><i data-lucide="log-out" class="w-4 h-4"></i><span x-text="t('logout')"></span></a>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -293,43 +299,62 @@
       <main class="max-w-7xl mx-auto px-4 py-6 w-full">
         <!-- HOME -->
         <section x-show="state.activeTab==='home'" x-cloak>
-          <h1 class="text-2xl md:text-3xl font-bold">Bảng điều khiển</h1>
+          <h1 class="text-2xl md:text-3xl font-bold" x-text="t('dashboard')"></h1>
+
+          <!-- Banners showcase on Home -->
+          <div class="mt-4 rounded-2xl glass overflow-hidden">
+            <div class="flex items-center justify-between px-4 py-2">
+              <div class="font-medium" x-text="t('banners.showcase')"></div>
+              <a href="#" class="text-sm opacity-80" @click.prevent="setTab('banners')" x-text="t('manage')"></a>
+            </div>
+            <div class="relative">
+              <!-- simple snap carousel using Alpine -->
+              <div class="flex overflow-x-auto scroll-smooth snap-x snap-mandatory gap-3 p-3" x-ref="bannerStrip">
+                <template x-for="b in activeBanners()" :key="b.id">
+                  <div class="snap-center shrink-0 w-[320px] sm:w-[420px] h-40 rounded-xl overflow-hidden relative border border-white/10 bg-black/20">
+                    <img :src="b.thumb" alt="banner" class="absolute inset-0 w-full h-full object-cover">
+                    <div class="absolute inset-x-0 bottom-0 p-2 text-xs bg-gradient-to-t from-black/50 to-transparent">
+                      <div class="font-medium" x-text="b.name"></div>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </div>
 
           <!-- Quick actions -->
           <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
-            <button class="rounded-2xl p-3 glass hover:bg-white/10 flex items-center gap-2" @click="openCreateOrder()">
-              <i data-lucide="file-plus" class="w-4 h-4"></i> Tạo đơn
-            </button>
-            <button class="rounded-2xl p-3 glass flex items-center gap-2">
-              <i data-lucide="truck" class="w-4 h-4"></i> Nhập hàng
-            </button>
-            <button class="rounded-2xl p-3 glass flex items-center gap-2" @click="setTab('orders')">
-              <i data-lucide="bar-chart-3" class="w-4 h-4"></i> Báo cáo
-            </button>
-            <button class="rounded-2xl p-3 glass flex items-center gap-2">
-              <i data-lucide="credit-card" class="w-4 h-4"></i> Đối soát
-            </button>
+            <button class="rounded-2xl p-3 glass hover:bg-white/10 flex items-center gap-2" @click="openCreateOrder()"><i data-lucide="file-plus" class="w-4 h-4"></i><span x-text="t('actions.create')"></span></button>
+            <button class="rounded-2xl p-3 glass flex items-center gap-2"><i data-lucide="truck" class="w-4 h-4"></i><span x-text="t('actions.inbound')"></span></button>
+            <button class="rounded-2xl p-3 glass flex items-center gap-2" @click="setTab('orders')"><i data-lucide="bar-chart-3" class="w-4 h-4"></i><span x-text="t('actions.report')"></span></button>
+            <button class="rounded-2xl p-3 glass flex items-center gap-2"><i data-lucide="credit-card" class="w-4 h-4"></i><span x-text="t('actions.reconcile')"></span></button>
           </div>
 
           <!-- KPIs -->
           <div class="mt-6 grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <div class="relative overflow-hidden rounded-2xl p-5 glass-strong">
               <i data-lucide="trending-up" class="absolute right-4 top-4 w-5 h-5 opacity-40"></i>
-              <p class="text-sm opacity-80">Doanh thu hôm nay</p>
+              <p class="text-sm opacity-80" x-text="t('kpi.todayRevenue')"></p>
               <div class="mt-2 text-3xl font-semibold" x-text="vnd(8650000)"></div>
-              <p class="text-xs text-emerald-300 mt-1">↑ 8.2% so với hôm qua</p>
+              <p class="text-xs text-emerald-300 mt-1">↑ 8.2%</p>
             </div>
             <div class="relative overflow-hidden rounded-2xl p-5 glass">
               <i data-lucide="check-circle-2" class="absolute right-4 top-4 w-5 h-5 opacity-40"></i>
-              <p class="text-sm opacity-80">Đơn hoàn tất</p><div class="mt-2 text-3xl font-semibold">42</div><p class="text-xs opacity-80">Tỉ lệ 92%</p>
+              <p class="text-sm opacity-80" x-text="t('kpi.completed')"></p>
+              <div class="mt-2 text-3xl font-semibold">42</div>
+              <p class="text-xs opacity-80">92%</p>
             </div>
             <div class="relative overflow-hidden rounded-2xl p-5 glass">
               <i data-lucide="user-plus" class="absolute right-4 top-4 w-5 h-5 opacity-40"></i>
-              <p class="text-sm opacity-80">Khách mới</p><div class="mt-2 text-3xl font-semibold">17</div><p class="text-xs opacity-80">Trong 24h qua</p>
+              <p class="text-sm opacity-80" x-text="t('kpi.newCustomers')"></p>
+              <div class="mt-2 text-3xl font-semibold">17</div>
+              <p class="text-xs opacity-80" x-text="t('kpi.last24h')"></p>
             </div>
             <div class="relative overflow-hidden rounded-2xl p-5 glass">
               <i data-lucide="alert-triangle" class="absolute right-4 top-4 w-5 h-5 opacity-40"></i>
-              <p class="text-sm opacity-80">Tồn kho thấp</p><div class="mt-2 text-3xl font-semibold">9</div><p class="text-xs text-rose-300">Cần nhập thêm</p>
+              <p class="text-sm opacity-80" x-text="t('kpi.lowStock')"></p>
+              <div class="mt-2 text-3xl font-semibold">9</div>
+              <p class="text-xs text-rose-300" x-text="t('kpi.needRestock')"></p>
             </div>
           </div>
 
@@ -337,90 +362,95 @@
           <div class="mt-6 grid lg:grid-cols-3 gap-6">
             <div class="lg:col-span-2 rounded-2xl p-5 glass">
               <div class="flex items-center justify-between gap-3 flex-wrap">
-                <p class="font-medium">Doanh thu 30 ngày</p>
-                <select class="px-2 py-1 rounded-lg glass text-sm" x-model="state.range" @change="renderCharts()">
-                  <option value="7">7 ngày</option><option value="14">14 ngày</option><option value="30">30 ngày</option>
-                </select>
+                <p class="font-medium" x-text="t('chart.revenue30')"></p>
+                <!-- Dropdown range (thay cho <select ...>) -->
+                <div x-data="{open:false, items:[
+                    {v:7,  l: t('days7')},
+                    {v:14, l: t('days14')},
+                    {v:30, l: t('days30')}
+                    ]}"
+                    class="relative">
+                <button type="button"
+                        @click="open=!open"
+                        @keydown.escape.window="open=false"
+                        class="px-2 py-1 rounded-lg glass text-sm flex items-center gap-2">
+                    <span x-text="items.find(i=>i.v===Number(state.range))?.l || t('days30')"></span>
+                    <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                </button>
+
+                <div x-show="open" x-transition.opacity.scale.origin.top.right
+                    @click.outside="open=false"
+                    class="absolute right-0 mt-1 w-36 rounded-xl border border-white/10
+                            bg-white/80 dark:bg-slate-900/90 backdrop-blur shadow-xl p-1 z-50">
+                    <template x-for="i in items" :key="i.v">
+                    <button type="button"
+                            @click="state.range=i.v; open=false; renderCharts()"
+                            class="w-full flex items-center justify-between px-3 py-2 rounded-lg
+                                    hover:bg-slate-100/70 dark:hover:bg-white/10">
+                        <span x-text="i.l"></span>
+                        <i data-lucide="check" class="w-4 h-4" x-show="Number(state.range)===i.v"></i>
+                    </button>
+                    </template>
+                </div>
+                </div>
+
               </div>
               <div class="mt-4 h-60"><canvas id="lineRevenue"></canvas></div>
             </div>
 
             <div class="rounded-2xl p-5 glass">
               <div class="flex items-center justify-between">
-                <p class="font-medium">Cơ cấu doanh thu</p>
-                <span class="text-xs opacity-80">Theo nhóm</span>
+                <p class="font-medium" x-text="t('chart.split')"></p>
+                <span class="text-xs opacity-80" x-text="t('byGroup')"></span>
               </div>
               <div class="mt-4 h-60"><canvas id="pieSplit"></canvas></div>
               <ul class="mt-3 text-sm space-y-1" id="legendSplit"></ul>
             </div>
           </div>
 
-          <!-- Tables -->
+          <!-- Recent Orders & Top Products (giữ nguyên cấu trúc, đã rút gọn label sang i18n nơi cần) -->
           <div class="mt-6 grid lg:grid-cols-2 gap-6">
-            <!-- Recent Orders (mobile-first) -->
-            <div class="rounded-2xl glass overflow-hidden">
-            <div class="px-5 py-3 flex items-center justify-between">
-                <p class="font-medium">Đơn hàng gần đây</p>
-                <a href="#" class="text-sm opacity-80" @click.prevent="setTab('orders')">Xem tất cả</a>
-            </div>
-
-            <!-- Mobile: dùng card; ≥sm: bảng hàng ngang -->
-            <ul class="px-3 pb-3 sm:p-0">
-                <template x-for="o in state.orders" :key="o.id">
-                <li
-                    class="bg-white/5 dark:bg-white/5 sm:bg-transparent rounded-xl sm:rounded-none
-                        border border-white/10 sm:border-0
-                        p-4 sm:px-5 sm:py-3
-                        mb-3 sm:mb-0 sm:border-t sm:border-white/10
-                        flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
-                    <!-- avatar -->
-                    <div class="w-9 h-9 rounded-lg glass grid place-items-center shrink-0">ĐH</div>
-
-                    <!-- left: title + date -->
-                    <div class="sm:mr-auto">
-                    <div class="font-medium leading-tight" x-text="o.title"></div>
-                    <div class="text-xs opacity-75 mt-0.5" x-text="o.date"></div>
-                    </div>
-
-                    <!-- right: amount + status -->
-                    <div class="flex items-center justify-between sm:justify-end gap-2 sm:gap-3">
-                    <div class="text-right">
-                        <div class="font-semibold leading-none" x-text="(o.amount>0?'+ ':'') + vnd(o.amount)"></div>
-                    </div>
-
-                    <div class="flex items-center gap-1.5">
-                        <span
-                        class="text-[11px] px-2 py-1 rounded-full border whitespace-nowrap"
-                        :class="o.status==='Thành công'
-                                ? 'border-emerald-400 text-emerald-300'
-                                : 'border-amber-400 text-amber-300'"
-                        x-text="o.status"></span>
-                        <i :data-lucide="o.status==='Thành công' ? 'check' : 'clock'" class="w-4 h-4 opacity-70"></i>
-                    </div>
-                    </div>
-                </li>
-                </template>
-            </ul>
-            </div>
-
-
-            <!-- Top Products -->
             <div class="rounded-2xl glass overflow-hidden">
               <div class="px-5 py-3 flex items-center justify-between">
-                <p class="font-medium">Top sản phẩm bán chạy</p>
-                <a href="#" class="text-sm opacity-80" @click.prevent="setTab('products')">Quản lý</a>
+                <p class="font-medium" x-text="t('orders.recent')"></p>
+                <a href="#" class="text-sm opacity-80" @click.prevent="setTab('orders')" x-text="t('viewAll')"></a>
+              </div>
+              <ul class="px-3 pb-3 sm:p-0">
+                <template x-for="o in state.orders" :key="o.id">
+                  <li class="bg-white/5 dark:bg-white/5 sm:bg-transparent rounded-xl sm:rounded-none border border-white/10 sm:border-0 p-4 sm:px-5 sm:py-3 mb-3 sm:mb-0 sm:border-t sm:border-white/10 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
+                    <div class="w-9 h-9 rounded-lg glass grid place-items-center shrink-0">ĐH</div>
+                    <div class="sm:mr-auto">
+                      <div class="font-medium leading-tight" x-text="o.title"></div>
+                      <div class="text-xs opacity-75 mt-0.5" x-text="o.date"></div>
+                    </div>
+                    <div class="flex items-center justify-between sm:justify-end gap-2 sm:gap-3">
+                      <div class="text-right"><div class="font-semibold leading-none" x-text="(o.amount>0?'+ ':'') + vnd(o.amount)"></div></div>
+                      <div class="flex items-center gap-1.5">
+                        <span class="text-[11px] px-2 py-1 rounded-full border whitespace-nowrap" :class="o.status==='Thành công' ? 'border-emerald-400 text-emerald-300' : 'border-amber-400 text-amber-300'" x-text="o.status"></span>
+                        <i :data-lucide="o.status==='Thành công' ? 'check' : 'clock'" class="w-4 h-4 opacity-70"></i>
+                      </div>
+                    </div>
+                  </li>
+                </template>
+              </ul>
+            </div>
+
+            <div class="rounded-2xl glass overflow-hidden">
+              <div class="px-5 py-3 flex items-center justify-between">
+                <p class="font-medium" x-text="t('products.topSelling')"></p>
+                <a href="#" class="text-sm opacity-80" @click.prevent="setTab('products')" x-text="t('manage')"></a>
               </div>
               <div class="table-wrap">
                 <table class="responsive text-sm">
                   <thead class="text-left opacity-80 border-b border-white/10">
-                    <tr><th class="px-5 py-2">Sản phẩm</th><th class="px-2 py-2">Đã bán</th><th class="px-2 py-2">Doanh thu</th></tr>
+                    <tr><th class="px-5 py-2" x-text="t('product')"></th><th class="px-2 py-2" x-text="t('sold')"></th><th class="px-2 py-2" x-text="t('revenue')"></th></tr>
                   </thead>
                   <tbody>
                     <template x-for="p in state.top" :key="p.name">
                       <tr class="border-b border-white/5">
-                        <td class="px-5 py-2" data-label="Sản phẩm" x-text="p.name"></td>
-                        <td class="px-2 py-2" data-label="Đã bán" x-text="p.qty"></td>
-                        <td class="px-2 py-2 font-medium" data-label="Doanh thu" x-text="vnd(p.rev)"></td>
+                        <td class="px-5 py-2" :data-label="t('product')" x-text="p.name"></td>
+                        <td class="px-2 py-2" :data-label="t('sold')" x-text="p.qty"></td>
+                        <td class="px-2 py-2 font-medium" :data-label="t('revenue')" x-text="vnd(p.rev)"></td>
                       </tr>
                     </template>
                   </tbody>
@@ -433,25 +463,28 @@
         <!-- PRODUCTS -->
         <section x-show="state.activeTab==='products'" x-cloak>
           <div class="flex items-center justify-between gap-3 flex-wrap">
-            <h2 class="text-xl font-semibold">Sản phẩm</h2>
+            <h2 class="text-xl font-semibold" x-text="t('nav.products')"></h2>
             <div class="flex gap-2">
-              <input class="w-52 px-3 py-2 rounded-xl glass" placeholder="Tìm theo tên..." x-model="state.search">
-              <button class="px-3 py-2 rounded-xl glass" @click="openProductModal()">+ Thêm sản phẩm</button>
+              <input class="w-72 px-3 py-2 rounded-xl glass" :placeholder="t('search.byName')" x-model="state.search">
+              <!-- Desktop (>= lg): nút có chữ -->
+              <button class="hidden lg:flex px-3 py-2 rounded-xl glass items-center gap-2" @click="openProductModal()"><i data-lucide="plus" class="w-4 h-4"></i><span x-text="t('actions.addProduct')"></span></button>
+              <!-- Mobile & Tablet (< lg): nút icon -->
+              <button class="flex lg:hidden px-3 py-2 rounded-xl glass items-center" @click="openProductModal()" aria-label="Thêm sản phẩm"><i data-lucide="plus" class="w-5 h-5"></i></button>
             </div>
           </div>
           <div class="mt-4 rounded-2xl glass overflow-hidden table-wrap">
             <table class="responsive text-sm">
               <thead class="text-left opacity-80 border-b border-white/10">
-                <tr><th class="px-4 py-2">Tên</th><th class="px-2 py-2">Danh mục</th><th class="px-2 py-2">Giá</th><th class="px-2 py-2">Tồn</th><th class="px-4 py-2 text-right">Thao tác</th></tr>
+                <tr><th class="px-4 py-2" x-text="t('name')"></th><th class="px-2 py-2" x-text="t('category')"></th><th class="px-2 py-2" x-text="t('price')"></th><th class="px-2 py-2" x-text="t('stock')"></th><th class="px-4 py-2 text-right" x-text="t('actions.title')"></th></tr>
               </thead>
               <tbody>
                 <template x-for="p in filteredProducts()" :key="p.id">
                   <tr class="border-b border-white/5">
-                    <td class="px-4 py-2" data-label="Tên" x-text="p.name"></td>
-                    <td class="px-2 py-2" data-label="Danh mục" x-text="p.cat"></td>
-                    <td class="px-2 py-2 font-medium" data-label="Giá" x-text="vnd(p.price)"></td>
-                    <td class="px-2 py-2" data-label="Tồn" x-text="p.stock"></td>
-                    <td class="px-4 py-2" data-label="Thao tác">
+                    <td class="px-4 py-2" :data-label="t('name')" x-text="p.name"></td>
+                    <td class="px-2 py-2" :data-label="t('category')" x-text="p.cat"></td>
+                    <td class="px-2 py-2 font-medium" :data-label="t('price')" x-text="vnd(p.price)"></td>
+                    <td class="px-2 py-2" :data-label="t('stock')" x-text="p.stock"></td>
+                    <td class="px-4 py-2" :data-label="t('actions.title')">
                       <div class="flex justify-end gap-2 sm:mobile-actions">
                         <button class="px-2 py-1.5 rounded-xl glass" @click="openProductModal(p)"><i data-lucide="pencil" class="w-4 h-4"></i></button>
                         <button class="px-2 py-1.5 rounded-xl glass" @click="deleteProduct(p.id)"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
@@ -467,27 +500,28 @@
         <!-- ORDERS -->
         <section x-show="state.activeTab==='orders'" x-cloak>
           <div class="flex items-center justify-between gap-3 flex-wrap">
-            <h2 class="text-xl font-semibold">Đơn hàng</h2>
+            <h2 class="text-xl font-semibold" x-text="t('nav.orders')"></h2>
             <div class="flex gap-2">
-              <input class="w-56 px-3 py-2 rounded-xl glass" placeholder="Tìm theo mã/khách..." x-model="state.search">
-              <button class="px-3 py-2 rounded-xl glass" @click="openCreateOrder()">+ Tạo đơn</button>
+              <input class="w-72 px-3 py-2 rounded-xl glass" :placeholder="t('search.byOrder')" x-model="state.search">
+              <button class="hidden py-2 lg:flex rounded-xl glass items-center" @click="openCreateOrder()"><i data-lucide="plus"></i><span class="ml-2" x-text="t('actions.addOrder')"></span></button>
+              <button class="px-3 py-2 lg:hidden rounded-xl glass flex items-center" @click="openCreateOrder()"><i data-lucide="plus"></i></button>
             </div>
           </div>
           <div class="mt-4 rounded-2xl glass overflow-hidden table-wrap">
             <table class="responsive text-sm">
               <thead class="text-left opacity-80 border-b border-white/10">
-                <tr><th class="px-4 py-2">Mã</th><th class="px-2 py-2">Khách hàng</th><th class="px-2 py-2">Ngày</th><th class="px-2 py-2">Trạng thái</th><th class="px-2 py-2">Tổng</th></tr>
+                <tr><th class="px-4 py-2" x-text="t('code')"></th><th class="px-2 py-2" x-text="t('customer')"></th><th class="px-2 py-2" x-text="t('date')"></th><th class="px-2 py-2" x-text="t('status')"></th><th class="px-2 py-2" x-text="t('total')"></th></tr>
               </thead>
               <tbody>
                 <template x-for="o in filteredOrders()" :key="o.id">
                   <tr class="border-b border-white/5">
-                    <td class="px-4 py-2" data-label="Mã" x-text="o.id"></td>
-                    <td class="px-2 py-2" data-label="Khách hàng" x-text="o.cus"></td>
-                    <td class="px-2 py-2" data-label="Ngày" x-text="o.date"></td>
-                    <td class="px-2 py-2" data-label="Trạng thái">
+                    <td class="px-4 py-2" :data-label="t('code')" x-text="o.id"></td>
+                    <td class="px-2 py-2" :data-label="t('customer')" x-text="o.cus"></td>
+                    <td class="px-2 py-2" :data-label="t('date')" x-text="o.date"></td>
+                    <td class="px-2 py-2" :data-label="t('status')">
                       <span class="text-xs px-2 py-1 rounded-full border" :class="o.status==='Thành công' ? 'border-emerald-400 text-emerald-300':'border-amber-400 text-amber-300'" x-text="o.status"></span>
                     </td>
-                    <td class="px-2 py-2 font-medium" data-label="Tổng" x-text="vnd(o.total)"></td>
+                    <td class="px-2 py-2 font-medium" :data-label="t('total')" x-text="vnd(o.total)"></td>
                   </tr>
                 </template>
               </tbody>
@@ -498,27 +532,118 @@
         <!-- CUSTOMERS -->
         <section x-show="state.activeTab==='customers'" x-cloak>
           <div class="flex items-center justify-between gap-3 flex-wrap">
-            <h2 class="text-xl font-semibold">Khách hàng</h2>
+            <h2 class="text-xl font-semibold" x-text="t('nav.customers')"></h2>
             <div class="flex gap-2">
-              <input class="w-56 px-3 py-2 rounded-xl glass" placeholder="Tìm theo tên/SĐT..." x-model="state.search">
-              <button class="px-3 py-2 rounded-xl glass" @click="openCustomerModal()">+ Thêm khách</button>
+              <input class="w-72 px-3 py-2 rounded-xl glass" :placeholder="t('search.byCustomer')" x-model="state.search">
+              <button class="px-3 py-2 lg:hidden rounded-xl glass flex items-center" @click="openCustomerModal()"><i data-lucide="plus" ></i></button>
+              <button class="hidden px-3 py-2 lg:flex rounded-xl glass items-center" @click="openCustomerModal()"><i data-lucide="plus" ></i><span class="ml-2" x-text="t('actions.addCustomer')"></span></button>
             </div>
           </div>
           <div class="mt-4 rounded-2xl glass overflow-hidden table-wrap">
             <table class="responsive text-sm">
               <thead class="text-left opacity-80 border-b border-white/10">
-                <tr><th class="px-4 py-2">Tên</th><th class="px-2 py-2">SĐT</th><th class="px-2 py-2">Địa chỉ</th><th class="px-4 py-2 text-right">Thao tác</th></tr>
+                <tr><th class="px-4 py-2" x-text="t('name')"></th><th class="px-2 py-2" x-text="t('phone')"></th><th class="px-2 py-2" x-text="t('address')"></th><th class="px-4 py-2 text-right" x-text="t('actions.title')"></th></tr>
               </thead>
               <tbody>
                 <template x-for="c in filteredCustomers()" :key="c.id">
                   <tr class="border-b border-white/5">
-                    <td class="px-4 py-2" data-label="Tên" x-text="c.name"></td>
-                    <td class="px-2 py-2" data-label="SĐT" x-text="c.phone"></td>
-                    <td class="px-2 py-2" data-label="Địa chỉ" x-text="c.addr"></td>
-                    <td class="px-4 py-2" data-label="Thao tác">
+                    <td class="px-4 py-2" :data-label="t('name')" x-text="c.name"></td>
+                    <td class="px-2 py-2" :data-label="t('phone')" x-text="c.phone"></td>
+                    <td class="px-2 py-2" :data-label="t('address')" x-text="c.addr"></td>
+                    <td class="px-4 py-2" :data-label="t('actions.title')">
                       <div class="flex justify-end gap-2 sm:mobile-actions">
                         <button class="px-2 py-1.5 rounded-xl glass" @click="openCustomerModal(c)"><i data-lucide="pencil" class="w-4 h-4"></i></button>
                         <button class="px-2 py-1.5 rounded-xl glass" @click="deleteCustomer(c.id)"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- POSTS -->
+        <section x-show="state.activeTab==='posts'" x-cloak>
+          <div class="flex items-center justify-between gap-3 flex-wrap">
+            <h2 class="text-xl font-semibold" x-text="t('nav.posts')"></h2>
+            <div class="flex gap-2">
+              <input class="w-72 px-3 py-2 rounded-xl glass" :placeholder="t('search.byPost')" x-model="state.search">
+              <button class="hidden lg:flex px-3 py-2 rounded-xl glass items-center gap-2" @click="openPostModal()"><i data-lucide="plus" class="w-4 h-4"></i><span x-text="t('actions.addPost')"></span></button>
+              <button class="flex lg:hidden px-3 py-2 rounded-xl glass items-center" @click="openPostModal()"><i data-lucide="plus" class="w-5 h-5"></i></button>
+            </div>
+          </div>
+          <div class="mt-4 rounded-2xl glass overflow-hidden table-wrap">
+            <table class="responsive text-sm">
+              <thead class="text-left opacity-80 border-b border-white/10">
+                <tr>
+                  <th class="px-4 py-2" x-text="t('title')"></th>
+                  <th class="px-2 py-2" x-text="t('category')"></th>
+                  <th class="px-2 py-2" x-text="t('date')"></th>
+                  <th class="px-2 py-2" x-text="t('status')"></th>
+                  <th class="px-4 py-2 text-right" x-text="t('actions.title')"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="p in filteredPosts()" :key="p.id">
+                  <tr class="border-b border-white/5">
+                    <td class="px-4 py-2" :data-label="t('title')"><div class="font-medium" x-text="p.title"></div></td>
+                    <td class="px-2 py-2" :data-label="t('category')" x-text="p.cat"></td>
+                    <td class="px-2 py-2" :data-label="t('date')" x-text="p.date"></td>
+                    <td class="px-2 py-2" :data-label="t('status')">
+                      <span class="text-xs px-2 py-1 rounded-full border" :class="p.published ? 'border-emerald-400 text-emerald-300':'border-amber-400 text-amber-300'" x-text="p.published? t('published'): t('draft')"></span>
+                    </td>
+                    <td class="px-4 py-2">
+                      <div class="flex justify-end gap-2 sm:mobile-actions">
+                        <button class="px-2 py-1.5 rounded-xl glass" @click="openPostModal(p)"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+                        <button class="px-2 py-1.5 rounded-xl glass" @click="deletePost(p.id)"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- BANNERS -->
+        <section x-show="state.activeTab==='banners'" x-cloak>
+          <div class="flex items-center justify-between gap-3 flex-wrap">
+            <h2 class="text-xl font-semibold" x-text="t('nav.banners')"></h2>
+            <div class="flex gap-2">
+              <input class="w-72 px-3 py-2 rounded-xl glass" :placeholder="t('search.byBanner')" x-model="state.search">
+              <button class="hidden lg:flex px-3 py-2 rounded-xl glass items-center gap-2" @click="openBannerModal()"><i data-lucide="plus" class="w-4 h-4"></i><span x-text="t('actions.addBanner')"></span></button>
+              <button class="flex lg:hidden px-3 py-2 rounded-xl glass items-center" @click="openBannerModal()"><i data-lucide="plus" class="w-5 h-5"></i></button>
+            </div>
+          </div>
+          <div class="mt-4 rounded-2xl glass overflow-hidden table-wrap">
+            <table class="responsive text-sm">
+              <thead class="text-left opacity-80 border-b border-white/10">
+                <tr>
+                  <th class="px-4 py-2" x-text="t('name')"></th>
+                  <th class="px-2 py-2" x-text="t('thumb')"></th>
+                  <th class="px-2 py-2" x-text="t('status')"></th>
+                  <th class="px-2 py-2" x-text="t('sort')"></th>
+                  <th class="px-4 py-2 text-right" x-text="t('actions.title')"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="b in filteredBanners()" :key="b.id">
+                  <tr class="border-b border-white/5">
+                    <td class="px-4 py-2" :data-label="t('name')" x-text="b.name"></td>
+                    <td class="px-2 py-2" :data-label="t('thumb')">
+                      <img :src="b.thumb" class="h-10 w-16 object-cover rounded-lg border border-white/10" alt="thumb">
+                    </td>
+                    <td class="px-2 py-2" :data-label="t('status')">
+                      <span class="text-xs px-2 py-1 rounded-full border" :class="b.active ? 'border-emerald-400 text-emerald-300':'border-amber-400 text-amber-300'" x-text="b.active? t('active') : t('inactive')"></span>
+                    </td>
+                    <td class="px-2 py-2" :data-label="t('sort')">
+                      <input type="number" class="w-20 px-2 py-1 rounded-lg glass" x-model.number="b.sort" @change="resortBanners()">
+                    </td>
+                    <td class="px-4 py-2">
+                      <div class="flex justify-end gap-2 sm:mobile-actions">
+                        <button class="px-2 py-1.5 rounded-xl glass" @click="openBannerModal(b)"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+                        <button class="px-2 py-1.5 rounded-xl glass" @click="deleteBanner(b.id)"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                       </div>
                     </td>
                   </tr>
@@ -538,124 +663,248 @@
     <div class="dock">
       <div class="dock-grid relative">
         <a href="#" class="dock-item" :class="{ 'active': state.activeTab==='home' }" @click.prevent="setTab('home')">
-          <i data-lucide="layout-dashboard"></i><span>Home</span>
+          <i data-lucide="layout-dashboard"></i><span x-text="t('nav.overview')"></span>
           <span class="indicator" x-show="state.activeTab==='home'"></span>
         </a>
         <a href="#" class="dock-item" :class="{ 'active': state.activeTab==='products' }" @click.prevent="setTab('products')">
-          <i data-lucide="package"></i><span>Products</span>
+          <i data-lucide="package"></i><span x-text="t('nav.products')"></span>
           <span class="indicator" x-show="state.activeTab==='products'"></span>
         </a>
         <div aria-hidden="true"></div>
         <a href="#" class="dock-item" :class="{ 'active': state.activeTab==='orders' }" @click.prevent="setTab('orders')">
-          <i data-lucide="receipt-text"></i><span>Orders</span>
+          <i data-lucide="receipt-text"></i><span x-text="t('nav.orders')"></span>
           <span class="indicator" x-show="state.activeTab==='orders'"></span>
         </a>
-        <a href="#" class="dock-item" :class="{ 'active': state.activeTab==='customers' }" @click.prevent="setTab('customers')">
-          <i data-lucide="users"></i><span>Clients</span>
-          <span class="indicator" x-show="state.activeTab==='customers'"></span>
-        </a>
+        <!-- More (thay cho Customers) -->
+        <button type="button"
+                class="dock-item"
+                @click="state.showMore = !state.showMore; $nextTick(()=>{ if(window.lucide) lucide.createIcons(); })"
+                :class="{ 'active': state.showMore }"
+                aria-haspopup="menu"
+                :aria-expanded="state.showMore">
+        <i data-lucide="more-horizontal"></i>
+        <span x-text="t('nav.more')"></span>
+        <span class="indicator" x-show="state.showMore"></span>
+        </button>
       </div>
 
-      <button class="fab" @click="openCreateOrder()" aria-label="Tạo đơn">
-        <i data-lucide="sparkles"></i>
-      </button>
+      <!-- More sheet (mobile) -->
+        <div x-show="state.showMore" x-cloak x-transition.opacity
+            class="fixed inset-0 z-50 bg-black/40 flex items-end"
+            @click.self="state.showMore=false"
+            @keydown.escape.window="state.showMore=false">
+        <div class="w-full max-w-lg mx-auto rounded-t-2xl p-3 pb-5
+                    bg-white/90 dark:bg-slate-900/90 backdrop-blur shadow-xl">
+            <div class="h-1 w-12 bg-slate-300/60 dark:bg-white/20 rounded-full mx-auto my-2"></div>
+
+            <div class="grid grid-cols-3 gap-2" @click.outside="state.showMore=false">
+            <!--Hồ sơ-->
+            <button class="rounded-xl glass px-3 py-3 flex flex-col items-center gap-1" @click="setTab('profile'); state.showMore=false">
+                <i data-lucide="user" class="w-5 h-5"></i>
+                <span class="text-xs" x-text="t('profile')"></span>
+            </button>
+            <button class="rounded-xl glass px-3 py-3 flex flex-col items-center gap-1"
+                    @click="setTab('customers'); state.showMore=false">
+                <i data-lucide="users" class="w-5 h-5"></i>
+                <span class="text-xs" x-text="t('nav.customers')"></span>
+            </button>
+
+            <button class="rounded-xl glass px-3 py-3 flex flex-col items-center gap-1"
+                    @click="setTab('posts'); state.showMore=false">
+                <i data-lucide="newspaper" class="w-5 h-5"></i>
+                <span class="text-xs" x-text="t('nav.posts')"></span>
+            </button>
+
+            <button class="rounded-xl glass px-3 py-3 flex flex-col items-center gap-1"
+                    @click="setTab('banners'); state.showMore=false">
+                <i data-lucide="images" class="w-5 h-5"></i>
+                <span class="text-xs" x-text="t('nav.banners')"></span>
+            </button>
+
+            <button class="rounded-xl glass px-3 py-3 flex flex-col items-center gap-1"
+              @click="toggleTheme(); state.showMore=false">
+                <i :data-lucide="state.dark ? 'sun' : 'moon'" class="w-5 h-5"></i>
+                <span class="text-xs" x-text="t('switchTheme')"></span>
+            </button>
+
+            <a href="/settings" class="rounded-xl glass px-3 py-3 flex flex-col items-center gap-1"
+                @click="state.showMore=false">
+                <i data-lucide="settings" class="w-5 h-5"></i>
+                <span class="text-xs" x-text="t('settings')"></span>
+            </a>
+
+            <a href="/logout" class="rounded-xl glass px-3 py-3 flex flex-col items-center gap-1 text-rose-500"
+                @click="state.showMore=false">
+                <i data-lucide="log-out" class="w-5 h-5"></i>
+                <span class="text-xs" x-text="t('logout')"></span>
+            </a>
+            
+            </div>
+        </div>
+        </div>
+
+      <button class="fab" @click="openCreateOrder()" aria-label="Tạo đơn"><i data-lucide="sparkles"></i></button>
     </div>
   </div>
 
-  <!-- ===== Modals (Create/Product/Customer) giữ nguyên logic) ===== -->
+  <!-- ===== Modals ===== -->
   <div class="modals">
-    <!-- Create Order (chưa làm) -->
-    <div x-show="state.showCreate" x-cloak
-      x-transition.opacity
-      class="fixed inset-0 z-50 bg-black/30 grid place-items-center p-4"
-      @keydown.escape.window="state.showCreate=false"
-      @click.outside="state.showCreate=false"
-    >
+    <!-- Create Order -->
+    <div x-show="state.showCreate" x-cloak x-transition.opacity class="fixed inset-0 z-50 bg-black/30 grid place-items-center p-4" @keydown.escape.window="state.showCreate=false" @click.outside="state.showCreate=false">
       <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-md" @click.stop>
-        <h3 class="text-lg font-semibold">Tạo đơn hàng</h3>
+        <h3 class="text-lg font-semibold" x-text="t('actions.createOrder')"></h3>
         <p class="mt-2 text-sm opacity-80">Chức năng đang phát triển...</p>
         <div class="mt-6 flex justify-end gap-2">
-          <button class="px-4 py-2 rounded-xl glass" @click="state.showCreate=false">Đóng</button>
+          <button class="px-4 py-2 rounded-xl glass" @click="state.showCreate=false" x-text="t('close')"></button>
         </div>
       </div>
     </div>
 
     <!-- Product Modal -->
-    <div x-show="state.showProduct" x-cloak
-      x-transition.opacity
-      class="fixed inset-0 z-50 bg-black/30 grid place-items-center p-4"
-      @keydown.escape.window="state.showProduct=false"
-      @click.outside="state.showProduct=false"
-    >
+    <div x-show="state.showProduct" x-cloak x-transition.opacity class="fixed inset-0 z-50 bg-black/30 grid place-items-center p-4" @keydown.escape.window="state.showProduct=false" @click.outside="state.showProduct=false">
       <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-md" @click.stop>
-        <h3 class="text-lg font-semibold" x-text="state.editingProduct ? 'Chỉnh sửa sản phẩm' : 'Thêm sản phẩm mới'"></h3>
+        <h3 class="text-lg font-semibold" x-text="state.editingProduct ? t('products.edit') : t('products.add')"></h3>
         <form class="mt-4 space-y-4" @submit.prevent="saveProduct()">
           <div>
-            <label class="block text-sm font-medium mb-1" for="prodName">Tên sản phẩm</label>
+            <label class="block text-sm font-medium mb-1" for="prodName" x-text="t('name')"></label>
             <input id="prodName" type="text" class="w-full px-3 py-2 rounded-xl glass focus:outline-none" x-model="formProduct.name" required>
           </div>
           <div>
-            <label class="block text-sm font-medium mb-1" for="prodCat">Danh mục</label>
+            <label class="block text-sm font-medium mb-1" for="prodCat" x-text="t('category')"></label>
             <input id="prodCat" type="text" class="w-full px-3 py-2 rounded-xl glass focus:outline-none" x-model="formProduct.cat" required>
           </div>
           <div>
-            <label class="block text-sm font-medium mb-1" for="prodPrice">Giá (VND)</label>
+            <label class="block text-sm font-medium mb-1" for="prodPrice" x-text="t('priceVND')"></label>
             <input id="prodPrice" type="number" min="0" class="w-full px-3 py-2 rounded-xl glass focus:outline-none" x-model.number="formProduct.price" required>
           </div>
-            <div>
-                <label class="block text-sm font-medium mb-1" for="prodStock">Tồn kho</label>
-                <input id="prodStock" type="number" min="0" class="w-full px-3 py-2 rounded-xl glass focus:outline-none" x-model.number="formProduct.stock" required>   
-            </div>
-          <div class="flex justify-end gap-2">
-            <button type="button" class="px-4 py-2 rounded-xl glass" @click="state.showProduct=false">Hủy</button>
-            <button type="submit" class="px-4 py-2 rounded-xl glass bg-blue-600 text-white hover:bg-blue-700">
-              <span x-text="state.editingProduct ? 'Lưu thay đổi' : 'Thêm sản phẩm'"></span>
-            </button>
-            </div>
-        </form>
-      </div>    
-    </div>
-    <!-- Customer Modal -->
-    <div x-show="state.showCustomer" x-cloak
-      x-transition.opacity
-      class="fixed inset-0 z-50 bg-black/30 grid place-items-center p-4"
-      @keydown.escape.window="state.showCustomer=false"
-      @click.outside="state.showCustomer=false"
-    >
-      <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-md" @click.stop>
-        <h3 class="text-lg font-semibold" x-text="state.editingCustomer ? 'Chỉnh sửa khách hàng' : 'Thêm khách hàng mới'"></h3>
-        <form class="mt-4 space-y-4" @submit.prevent="saveCustomer()">
           <div>
-            <label class="block text-sm font-medium mb-1" for="custName">Tên khách hàng</label>
-            <input id="custName" type="text" class="w-full px-3 py-2 rounded-xl glass focus:outline-none" x-model="formCustomer.name" required>
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-1" for="custPhone">Số điện thoại</label>
-            <input id="custPhone" type="text" class="w-full px-3 py-2 rounded-xl glass focus:outline-none" x-model="formCustomer.phone" required>
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-1" for="custAddr">Địa chỉ</label>
-            <input id="custAddr" type="text" class="w-full px-3 py-2 rounded-xl glass focus:outline-none" x-model="formCustomer.addr" required>
+            <label class="block text-sm font-medium mb-1" for="prodStock" x-text="t('stock')"></label>
+            <input id="prodStock" type="number" min="0" class="w-full px-3 py-2 rounded-xl glass focus:outline-none" x-model.number="formProduct.stock" required>
           </div>
           <div class="flex justify-end gap-2">
-            <button type="button" class="px-4 py-2 rounded-xl glass" @click="state.showCustomer=false">Hủy</button>
+            <button type="button" class="px-4 py-2 rounded-xl glass" @click="state.showProduct=false" x-text="t('cancel')"></button>
             <button type="submit" class="px-4 py-2 rounded-xl glass bg-blue-600 text-white hover:bg-blue-700">
-              <span x-text="state.editingCustomer ? 'Lưu thay đổi' : 'Thêm khách hàng'"></span>
+              <span x-text="state.editingProduct ? t('saveChanges') : t('add')"></span>
             </button>
           </div>
         </form>
       </div>
     </div>
 
+    <!-- Customer Modal -->
+    <div x-show="state.showCustomer" x-cloak x-transition.opacity class="fixed inset-0 z-50 bg-black/30 grid place-items-center p-4" @keydown.escape.window="state.showCustomer=false" @click.outside="state.showCustomer=false">
+      <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-md" @click.stop>
+        <h3 class="text-lg font-semibold" x-text="state.editingCustomer ? t('customers.edit') : t('customers.add')"></h3>
+        <form class="mt-4 space-y-4" @submit.prevent="saveCustomer()">
+          <div>
+            <label class="block text-sm font-medium mb-1" for="custName" x-text="t('name')"></label>
+            <input id="custName" type="text" class="w-full px-3 py-2 rounded-xl glass focus:outline-none" x-model="formCustomer.name" required>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1" for="custPhone" x-text="t('phone')"></label>
+            <input id="custPhone" type="text" class="w-full px-3 py-2 rounded-xl glass focus:outline-none" x-model="formCustomer.phone" required>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1" for="custAddr" x-text="t('address')"></label>
+            <input id="custAddr" type="text" class="w-full px-3 py-2 rounded-xl glass focus:outline-none" x-model="formCustomer.addr" required>
+          </div>
+          <div class="flex justify-end gap-2">
+            <button type="button" class="px-4 py-2 rounded-xl glass" @click="state.showCustomer=false" x-text="t('cancel')"></button>
+            <button type="submit" class="px-4 py-2 rounded-xl glass bg-blue-600 text-white hover:bg-blue-700"><span x-text="state.editingCustomer ? t('saveChanges') : t('add')"></span></button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Post Modal -->
+    <div x-show="state.showPost" x-cloak x-transition.opacity class="fixed inset-0 z-50 bg-black/30 grid place-items-center p-4" @keydown.escape.window="state.showPost=false" @click.outside="state.showPost=false">
+           <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-lg" @click.stop>
+        <h3 class="text-lg font-semibold" x-text="state.editingPost ? t('posts.edit') : t('posts.add')"></h3>
+        <form class="mt-4 space-y-4" @submit.prevent="savePost()">
+          <div>
+            <label class="block text-sm font-medium mb-1" for="postTitle" x-text="t('title')"></label>
+            <input id="postTitle" type="text" class="w-full px-3 py-2 rounded-xl glass" x-model="formPost.title" required>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1" for="postCat" x-text="t('category')"></label>
+            <input id="postCat" type="text" class="w-full px-3 py-2 rounded-xl glass" x-model="formPost.cat" required>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1" for="postContent" x-text="t('content')"></label>
+            <textarea id="postContent" class="w-full px-3 py-2 rounded-xl glass min-h-[120px]" x-model="formPost.content" required></textarea>
+          </div>
+          <div class="flex items-center justify-between">
+            <label class="flex items-center gap-2 text-sm">
+              <input type="checkbox" x-model="formPost.published" class="rounded">
+              <span x-text="t('publishNow')"></span>
+            </label>
+            <div class="flex gap-2">
+              <button type="button" class="px-4 py-2 rounded-xl glass" @click="state.showPost=false" x-text="t('cancel')"></button>
+              <button type="submit" class="px-4 py-2 rounded-xl glass bg-blue-600 text-white hover:bg-blue-700">
+                <span x-text="state.editingPost ? t('saveChanges') : t('add')"></span>
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Banner Modal -->
+    <div x-show="state.showBanner" x-cloak x-transition.opacity class="fixed inset-0 z-50 bg-black/30 grid place-items-center p-4" @keydown.escape.window="state.showBanner=false" @click.outside="state.showBanner=false">
+      <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-md" @click.stop>
+        <h3 class="text-lg font-semibold" x-text="state.editingBanner ? t('banners.edit') : t('banners.add')"></h3>
+        <form class="mt-4 space-y-4" @submit.prevent="saveBanner()">
+          <div>
+            <label class="block text-sm font-medium mb-1" for="bnName" x-text="t('name')"></label>
+            <input id="bnName" type="text" class="w-full px-3 py-2 rounded-xl glass" x-model="formBanner.name" required>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1" for="bnThumb" x-text="t('thumbUrl')"></label>
+            <input id="bnThumb" type="url" class="w-full px-3 py-2 rounded-xl glass" x-model="formBanner.thumb" placeholder="https://...">
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm font-medium mb-1" for="bnSort" x-text="t('sort')"></label>
+              <input id="bnSort" type="number" min="0" class="w-full px-3 py-2 rounded-xl glass" x-model.number="formBanner.sort">
+            </div>
+            <div class="flex items-end">
+              <label class="flex items-center gap-2 text-sm">
+                <input type="checkbox" x-model="formBanner.active" class="rounded">
+                <span x-text="t('active')"></span>
+              </label>
+            </div>
+          </div>
+          <div class="flex justify-end gap-2">
+            <button type="button" class="px-4 py-2 rounded-xl glass" @click="state.showBanner=false" x-text="t('cancel')"></button>
+            <button type="submit" class="px-4 py-2 rounded-xl glass bg-blue-600 text-white hover:bg-blue-700">
+              <span x-text="state.editingBanner ? t('saveChanges') : t('add')"></span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div> <!-- /modals -->
+
   <script>
     function ui(){
       return {
+        // ===== STATE =====
         state:{
           dark:true, range:30, activeTab:'home',
-          mobileMenu:false, showCreate:false,
+          lang: localStorage.getItem('lang') || 'vi',
+          showCreate:false,
+          // products
           showProduct:false, editingProduct:false,
+          // customers
           showCustomer:false, editingCustomer:false,
+          // posts
+          showPost:false, editingPost:false,
+          // banners
+          showBanner:false, editingBanner:false,
+          showMore:false,
+          sidebarCollapsed: JSON.parse(localStorage.getItem('sidebarCollapsed') ?? 'false'),
           search:'',
+          // demo data
           orders:[
             { id:'#1001', cus:'Nguyễn Anh', title:'ĐH #1001 — Nguyễn Anh', status:'Thành công', date:'Hôm nay 12:40', total:4990000, amount:4990000 },
             { id:'#1002', cus:'Lê Mai', title:'ĐH #1002 — Lê Mai (COD)', status:'Chờ xử lý', date:'Hôm nay 15:12', total:1250000, amount:1250000 },
@@ -675,17 +924,111 @@
             { name:'Tượng Quan Âm 40cm', qty:26, rev:23900000 },
             { name:'Bát hương men rạn 20cm', qty:18, rev:14200000 },
             { name:'Đèn dầu đồng 25cm', qty:15, rev:7500000 },
+          ],
+          // posts demo
+          posts:[
+            { id:1, title:'Ý nghĩa bát hương trong thờ cúng', cat:'Kiến thức', date:'2025-09-10', published:true, content:'...' },
+            { id:2, title:'Chọn tượng Phật hợp bàn thờ', cat:'Tư vấn', date:'2025-09-22', published:false, content:'...' },
+          ],
+          // banners demo
+          banners:[
+            { id:1, name:'Khuyến mãi Vu Lan', thumb:'https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=1200&auto=format&fit=crop', sort:1, active:true },
+            { id:2, name:'Hàng mới: Đèn dầu', thumb:'https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=1200&auto=format&fit=crop', sort:2, active:true },
+            { id:3, name:'Bộ đồ thờ men rạn', thumb:'https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=1200&auto=format&fit=crop', sort:3, active:false },
           ]
         },
-        charts:{ line:null, pie:null },
+
+        // forms
         formProduct:{ id:null, name:'', cat:'', price:0, stock:0 },
         formCustomer:{ id:null, name:'', phone:'', addr:'' },
+        formPost:{ id:null, title:'', cat:'', content:'', date:'', published:true },
+        formBanner:{ id:null, name:'', thumb:'', sort:0, active:true },
 
-        vnd(n){ return new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(n).replace('₫','₫'); },
-        tabLabel(t){ return {home:'Trang chủ',products:'Sản phẩm',orders:'Đơn hàng',customers:'Khách hàng'}[t] || 'Trang chủ'; },
-        navClass(t){ return (this.state.activeTab===t ? 'glass-strong' : 'hover:glass') + ' cursor-pointer'; },
+        charts:{ line:null, pie:null },
 
-        setTab(t){ this.state.activeTab=t; this.state.search=''; this.$nextTick(()=>{ if(window.lucide) lucide.createIcons(); if(t==='home') this.renderCharts(); }); },
+        // ===== I18N =====
+        dict:{
+          vi:{
+            'dashboard':'Bảng điều khiển',
+            'profile':'Hồ sơ', 'settings':'Cài đặt', 'switchTheme':'Giao diện', 'logout':'Đăng xuất',
+            'manage':'Quản lý', 'viewAll':'Xem tất cả', 'byGroup':'Theo nhóm',
+            'days7':'7 ngày','days14':'14 ngày','days30':'30 ngày',
+            'published':'Đã xuất bản', 'draft':'Bản nháp', 'active':'Kích hoạt', 'inactive':'Ẩn',
+            'title':'Tiêu đề','content':'Nội dung','name':'Tên','category':'Danh mục','price':'Giá','priceVND':'Giá (VND)','stock':'Tồn','phone':'SĐT','address':'Địa chỉ','code':'Mã','customer':'Khách hàng','date':'Ngày','status':'Trạng thái','total':'Tổng','product':'Sản phẩm','sold':'Đã bán','revenue':'Doanh thu','thumb':'Ảnh','sort':'Sắp xếp','thumbUrl':'Link ảnh',
+            'close':'Đóng','cancel':'Hủy','add':'Thêm','saveChanges':'Lưu thay đổi','publishNow':'Xuất bản ngay','vietnamese':'Tiếng Việt','english':'English',expand:'Mở rộng', collapse:'Thu gọn',
+            nav:{ overview:'Tổng quan', products:'Sản phẩm', orders:'Đơn hàng', customers:'Khách hàng', posts:'Bài viết', banners:'Banner', more:'Thêm' },
+            actions:{ title:'Thao tác', create:'Tạo đơn', inbound:'Nhập hàng', report:'Báo cáo', reconcile:'Đối soát', createOrder:'Tạo đơn hàng', addProduct:'Thêm sản phẩm', addCustomer:'Thêm khách hàng', addOrder:'Thêm đơn hàng', addPost:'Thêm bài viết', addBanner:'Thêm banner' },
+            kpi:{ todayRevenue:'Doanh thu hôm nay', completed:'Đơn hoàn tất', newCustomers:'Khách mới', last24h:'Trong 24h qua', lowStock:'Tồn kho thấp', needRestock:'Cần nhập thêm' },
+            chart:{ revenue30:'Doanh thu', split:'Cơ cấu doanh thu' },
+            orders:{ recent:'Đơn hàng gần đây' },
+            products:{ add:'Thêm sản phẩm mới', edit:'Chỉnh sửa sản phẩm', topSelling:'Top sản phẩm bán chạy' },
+            customers:{ add:'Thêm khách hàng mới', edit:'Chỉnh sửa khách hàng' },
+            posts:{ add:'Thêm bài viết', edit:'Chỉnh sửa bài viết' },
+            banners:{ add:'Thêm banner', edit:'Chỉnh sửa banner', showcase:'Banner đang chạy' },
+            search:{
+              placeholder:(tab)=>`Tìm trong ${tab}...`,
+              byName:'Tìm theo tên...',
+              byOrder:'Tìm theo mã/khách...',
+              byCustomer:'Tìm theo tên/SĐT...',
+              byPost:'Tìm theo tiêu đề...',
+              byBanner:'Tìm theo tên banner...'
+            }
+          },
+          en:{
+            'dashboard':'Dashboard',
+            'profile':'Profile', 'settings':'Settings', 'switchTheme':'Toggle theme', 'logout':'Log out',
+            'manage':'Manage', 'viewAll':'View all', 'byGroup':'By group',
+            'days7':'7 days','days14':'14 days','days30':'30 days',
+            'published':'Published','draft':'Draft','active':'Active','inactive':'Inactive',
+            'title':'Title','content':'Content','name':'Name','category':'Category','price':'Price','priceVND':'Price (VND)','stock':'Stock','phone':'Phone','address':'Address','code':'Code','customer':'Customer','date':'Date','status':'Status','total':'Total','product':'Product','sold':'Sold','revenue':'Revenue','thumb':'Image','sort':'Sort','thumbUrl':'Image URL',
+            'close':'Close','cancel':'Cancel','add':'Add','saveChanges':'Save changes','publishNow':'Publish now','vietnamese':'Vietnamese','english':'English','expand':'Expand', 'collapse':'Collapse',
+            nav:{ overview:'Overview', products:'Products', orders:'Orders', customers:'Customers', posts:'Posts', banners:'Banners', more:'More' },
+            actions:{  title:'Actions', create:'Create order', inbound:'Inbound', report:'Reports', reconcile:'Reconcile', createOrder:'Create order', addProduct:'Add product', addCustomer:'Add customer', addOrder:'Add order', addPost:'Add post', addBanner:'Add banner' },
+            kpi:{ todayRevenue:'Today revenue', completed:'Completed orders', newCustomers:'New customers', last24h:'Last 24h', lowStock:'Low stock', needRestock:'Need restock' },
+            chart:{ revenue30:'Revenue', split:'Revenue split' },
+            orders:{ recent:'Recent orders' },
+            products:{ add:'Add new product', edit:'Edit product', topSelling:'Top selling products' },
+            customers:{ add:'Add new customer', edit:'Edit customer' },
+            posts:{ add:'Add post', edit:'Edit post' },
+            banners:{ add:'Add banner', edit:'Edit banner', showcase:'Active banners' },
+            search:{
+              placeholder:(tab)=>`Search in ${tab}...`,
+              byName:'Search by name...',
+              byOrder:'Search by code/customer...',
+              byCustomer:'Search by name/phone...',
+              byPost:'Search by title...',
+              byBanner:'Search banner name...'
+            }
+          }
+        },
+
+        t(key, arg=null){
+          const lang=this.state.lang, d=this.dict[lang];
+          // nested keys like 'nav.overview'
+          const val=key.split('.').reduce((o,k)=>o?.[k], d);
+          if(typeof val==='function') return val(arg);
+          return val ?? key;
+        },
+
+        setLang(l){
+          this.state.lang=l;
+          localStorage.setItem('lang', l);
+          this.$nextTick(()=>{ if (window.lucide) lucide.createIcons(); });
+        },
+
+        vnd(n){ return new Intl.NumberFormat(this.state.lang==='vi'?'vi-VN':'en-US',{style:'currency',currency:'VND'}).format(n); },
+        tabLabel(t){ const map={home:this.t('nav.overview'),products:this.t('nav.products'),orders:this.t('nav.orders'),customers:this.t('nav.customers'),posts:this.t('nav.posts'),banners:this.t('nav.banners')}; return map[t]||this.t('nav.overview'); },
+        navClass(t){
+        return (this.state.activeTab===t ? 'is-active' : '');
+        },
+
+        setTab(t){
+        this.state.activeTab = t;
+        this.state.search = '';
+        this.state.showMore = false; // đóng “More”
+        this.$nextTick(()=>{ if(window.lucide) lucide.createIcons(); if(t==='home') this.renderCharts(); });
+        },
+
 
         toggleTheme(){
           this.state.dark=!this.state.dark;
@@ -694,7 +1037,7 @@
         },
         openCreateOrder(){ this.state.showCreate=true; },
 
-        // PRODUCTS CRUD
+        // ===== PRODUCTS CRUD =====
         openProductModal(p=null){
           if(p){ this.state.editingProduct=true; this.formProduct={...p}; }
           else { this.state.editingProduct=false; this.formProduct={ id:null, name:'', cat:'', price:0, stock:0 }; }
@@ -711,12 +1054,12 @@
           this.state.showProduct=false;
         },
         deleteProduct(id){
-          if(confirm('Xóa sản phẩm này?')){
+          if(confirm(this.state.lang==='vi'?'Xóa sản phẩm này?':'Delete this product?')){
             this.state.products = this.state.products.filter(p=>p.id!==id);
           }
         },
 
-        // CUSTOMERS CRUD
+        // ===== CUSTOMERS CRUD =====
         openCustomerModal(c=null){
           if(c){ this.state.editingCustomer=true; this.formCustomer={...c}; }
           else { this.state.editingCustomer=false; this.formCustomer={ id:null, name:'', phone:'', addr:'' }; }
@@ -733,12 +1076,63 @@
           this.state.showCustomer=false;
         },
         deleteCustomer(id){
-          if(confirm('Xóa khách hàng này?')){
+          if(confirm(this.state.lang==='vi'?'Xóa khách hàng này?':'Delete this customer?')){
             this.state.customers = this.state.customers.filter(c=>c.id!==id);
           }
         },
 
-        // Filters
+        // ===== POSTS CRUD =====
+        openPostModal(p=null){
+          if(p){ this.state.editingPost=true; this.formPost={...p}; }
+          else { this.state.editingPost=false; this.formPost={ id:null, title:'', cat:'', content:'', date:new Date().toISOString().slice(0,10), published:true }; }
+          this.state.showPost=true;
+        },
+        savePost(){
+          if(this.state.editingPost){
+            const idx=this.state.posts.findIndex(x=>x.id===this.formPost.id);
+            if(idx>-1) this.state.posts[idx]={...this.formPost};
+          }else{
+            const nid= (this.state.posts.at(-1)?.id || 0) + 1;
+            this.state.posts.push({...this.formPost, id:nid});
+          }
+          this.state.showPost=false;
+        },
+        deletePost(id){
+          if(confirm(this.state.lang==='vi'?'Xóa bài viết này?':'Delete this post?')){
+            this.state.posts = this.state.posts.filter(p=>p.id!==id);
+          }
+        },
+
+        // ===== BANNERS CRUD =====
+        openBannerModal(b=null){
+          if(b){ this.state.editingBanner=true; this.formBanner={...b}; }
+          else { this.state.editingBanner=false; this.formBanner={ id:null, name:'', thumb:'', sort:(this.state.banners.at(-1)?.sort||0)+1, active:true }; }
+          this.state.showBanner=true;
+        },
+        saveBanner(){
+          if(this.state.editingBanner){
+            const idx=this.state.banners.findIndex(x=>x.id===this.formBanner.id);
+            if(idx>-1) this.state.banners[idx]={...this.formBanner};
+          }else{
+            const nid= (this.state.banners.at(-1)?.id || 0) + 1;
+            this.state.banners.push({...this.formBanner, id:nid});
+          }
+          this.resortBanners();
+          this.state.showBanner=false;
+        },
+        deleteBanner(id){
+          if(confirm(this.state.lang==='vi'?'Xóa banner này?':'Delete this banner?')){
+            this.state.banners = this.state.banners.filter(b=>b.id!==id);
+          }
+        },
+        resortBanners(){
+          this.state.banners.sort((a,b)=> (a.sort??0) - (b.sort??0));
+        },
+        activeBanners(){
+          return this.state.banners.filter(b=>b.active).sort((a,b)=> (a.sort??0)-(b.sort??0));
+        },
+
+        // ===== Filters =====
         filteredProducts(){
           const q=this.state.search.toLowerCase().trim();
           return this.state.products.filter(p => !q || p.name.toLowerCase().includes(q) || p.cat.toLowerCase().includes(q));
@@ -751,26 +1145,44 @@
           const q=this.state.search.toLowerCase().trim();
           return this.state.customers.filter(c => !q || c.name.toLowerCase().includes(q) || c.phone.replace(/\s/g,'').includes(q.replace(/\s/g,'')));
         },
+        filteredPosts(){
+          const q=this.state.search.toLowerCase().trim();
+          return this.state.posts.filter(p => !q || p.title.toLowerCase().includes(q) || p.cat.toLowerCase().includes(q));
+        },
+        filteredBanners(){
+          const q=this.state.search.toLowerCase().trim();
+          return this.state.banners.filter(b => !q || b.name.toLowerCase().includes(q));
+        },
 
-       boot(){
-            // đọc lưu trữ
-            const saved = localStorage.getItem('themeDark');
-            if (saved !== null) this.state.dark = (saved === '1');
+        // ===== Boot & Charts =====
+        boot(){
+          // theme
+          const saved = localStorage.getItem('themeDark');
+          if (saved !== null) this.state.dark = (saved === '1');
+          document.documentElement.classList.toggle('dark', this.state.dark);
 
-            // đảm bảo <html> khớp ngay khi Alpine khởi động
-            document.documentElement.classList.toggle('dark', this.state.dark);
+          // lang
+          const langSaved = localStorage.getItem('lang');
+          if(langSaved) this.state.lang = langSaved;
 
-            // icon / charts
-            setTimeout(() => { if (window.lucide) lucide.createIcons(); }, 0);
-            this.renderCharts?.();
+          setTimeout(() => { if (window.lucide) lucide.createIcons(); }, 0);
+          this.renderCharts?.();
 
-            // theo dõi chuyển theme, cập nhật ngay class + localStorage
-            this.$watch('state.dark', (val) => {
-                document.documentElement.classList.toggle('dark', val);
-                localStorage.setItem('themeDark', val ? '1' : '0');
+          this.$watch('state.dark', (val) => {
+            document.documentElement.classList.toggle('dark', val);
+            localStorage.setItem('themeDark', val ? '1' : '0');
+          });
+          this.$watch('state.lang', (val) => {
+            localStorage.setItem('lang', val);
+            this.$nextTick(()=>{ if (window.lucide) lucide.createIcons(); });
+          });
+          this.$watch('state.sidebarCollapsed', (v) => {
+            localStorage.setItem('sidebarCollapsed', JSON.stringify(v));
+            // cập nhật icon nếu cần
+            if (window.lucide) setTimeout(()=>lucide.createIcons(),0);
             });
-            },
 
+        },
 
         renderCharts(){
           this.$nextTick(()=>{
@@ -784,13 +1196,13 @@
                 datasets:[{data:values,fill:true,tension:.35,pointRadius:0,
                   backgroundColor:'rgba(212,167,55,.20)',borderColor:'rgba(212,167,55,.9)',borderWidth:2}]},
                 options:{plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(0,0,0,.08)'},
-                  ticks:{callback:v=>v+' tr'}}}}});
+                  ticks:{callback:v=> (this.state.lang==='vi'?v+' tr':v+' M')}}}}});
             }
             const pc=document.getElementById('pieSplit');
             if(pc){
               if(this.charts.pie) this.charts.pie.destroy();
-              const pieData={labels:['Tượng Phật','Đồ thờ','Nhang','Đèn dầu','Khác'],values:[40,25,15,12,8]};
-              this.charts.pie=new Chart(pc,{type:'doughnut',data:{labels:pieData.labels,datasets:[{data:pieData.values,backgroundColor:['#fbbf24','#fb7185','#34d399','#60a5fa','#a78bfa']}]},options:{cutout:'62%',plugins:{legend:{display:false}}}});
+              const pieData={labels:[this.t('nav.products'), 'Nhang','Đèn dầu', 'Khác'],values:[40,25,20,15]};
+              this.charts.pie=new Chart(pc,{type:'doughnut',data:{labels:pieData.labels,datasets:[{data:pieData.values,backgroundColor:['#fbbf24','#fb7185','#60a5fa','#a78bfa']}]},options:{cutout:'62%',plugins:{legend:{display:false}}}});
               const legend=document.getElementById('legendSplit');
               if(legend) legend.innerHTML=pieData.labels.map((l,i)=>`<li class='flex justify-between'><span>${l}</span><span class='font-medium'>${pieData.values[i]}%</span></li>`).join('');
             }
